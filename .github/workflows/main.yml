@@ -2,19 +2,87 @@ name: build python
 on:
   push:
     tags: [ 'v*' ]
+permissions:
+  contents: write  
+
 jobs:
-  release:
+  build-and-release:
     runs-on: windows-latest
     steps:
-    - uses: actions/checkout@v4
-    - uses: actions/setup-python@v4
-      with: {python-version: '3.10'}
-    - run: pip install pyinstaller && pyinstaller --onefile main.py
-    - run: |
-        $version = $env:GITHUB_REF -replace 'refs/tags/v', ''
-        Compress-Archive -Path dist/main.exe -DestinationPath "MyApp-v$version.zip"
-    - uses: softprops/action-gh-release@v1
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # 获取完整历史记录
+
+    - name: Extract version (fix double v issue)
+      id: get_version
+      run: |
+        # 正确处理版本号，移除开头的 v
+        $version = "${{ github.ref_name }}"
+        if ($version.StartsWith('v')) {
+            $version = $version.Substring(1)
+        }
+        echo "version=$version" >> $env:GITHUB_OUTPUT
+        echo "Cleaned version: $version"
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+
+    - name: Install dependencies
+      run: |
+        pip install pyinstaller
+
+    - name: Build executable
+      run: |
+        pyinstaller --onefile main.py
+
+    - name: Create ZIP package
+      id: create_package
+      run: |
+        $version = "${{ steps.get_version.outputs.version }}"
+        $packageName = "MyApp-v$version"
+        
+        # 创建压缩包
+        Compress-Archive -Path "dist/main.exe" -DestinationPath "$packageName.zip" -Force
+        
+        # 验证文件存在
+        if (Test-Path "$packageName.zip") {
+            echo "✅ Package created: $packageName.zip"
+            echo "package_name=$packageName.zip" >> $env:GITHUB_OUTPUT
+        } else {
+            echo "❌ Package creation failed"
+            exit 1
+        }
+
+    - name: List files for debugging
+      run: |
+        echo "Current directory:"
+        Get-Location
+        echo "Files:"
+        Get-ChildItem -Recurse
+        echo "Package files:"
+        Get-ChildItem *.zip
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
       with:
         tag_name: ${{ github.ref_name }}
-        files: MyApp-v${{ github.ref_name }}.zip
+        name: Release ${{ github.ref_name }}
+        body: |
+          # MyApp ${{ github.ref_name }}
+          
+          ## 自动构建版本
+          
+          ### 下载
+          - [MyApp-v${{ steps.get_version.outputs.version }}.zip](MyApp-v${{ steps.get_version.outputs.version }}.zip)
+          
+          ### 构建信息
+          - 版本: ${{ github.ref_name }}
+          - 构建时间: ${{ date() }}
+          - 提交: ${{ github.sha }}
+        files: ${{ steps.create_package.outputs.package_name }}
+        draft: false
+        prerelease: ${{ contains(github.ref, 'beta') || contains(github.ref, 'alpha') }}
   
