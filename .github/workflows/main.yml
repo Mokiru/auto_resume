@@ -79,9 +79,9 @@ jobs:
           - [MyApp-v${{ steps.get_version.outputs.version }}.zip](MyApp-v${{ steps.get_version.outputs.version }}.zip)
           
           ### 构建信息
-          - 版本: ${{ github.ref_name }}
-          - 构建时间: ${{ date() }}
-          - 提交: ${{ github.sha }}
+          - **版本**: ${{ github.ref_name }}
+          - **构建时间**: ${{ steps.get_timestamp.outputs.timestamp }}
+          - **提交**: [${{ github.sha }}](https://github.com/${{ github.repository }}/commit/${{ github.sha }})
         files: ${{ steps.create_package.outputs.package_name }}
         draft: false
         prerelease: ${{ contains(github.ref, 'beta') || contains(github.ref, 'alpha') }}
