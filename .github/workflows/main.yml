@@ -42,7 +42,7 @@ jobs:
       id: create_package
       run: |
         $version = "${{ steps.get_version.outputs.version }}"
-        $packageName = "MyApp-v$version"
+        $packageName = "AutoBoss-v$version"
         
         # 创建压缩包
         Compress-Archive -Path "dist/main.exe" -DestinationPath "$packageName.zip" -Force
@@ -71,12 +71,12 @@ jobs:
         tag_name: ${{ github.ref_name }}
         name: Release ${{ github.ref_name }}
         body: |
-          # MyApp ${{ github.ref_name }}
+          # AutoBoss ${{ github.ref_name }}
           
           ## 自动构建版本
           
           ### 下载
-          - [MyApp-v${{ steps.get_version.outputs.version }}.zip](MyApp-v${{ steps.get_version.outputs.version }}.zip)
+          - [AutoBoss-v${{ steps.get_version.outputs.version }}.zip](AutoBoss-v${{ steps.get_version.outputs.version }}.zip)
           
           ### 构建信息
           - **版本**: ${{ github.ref_name }}
