@@ -226,7 +226,7 @@ def passive_resume(page):
                 children_list = unread_list_ele.s_eles()
                 if len(children_list) == 0:
                     # 没有未读
-                    break
+                    return
                 for ele in children_list:
                     if not check_unread(ele):
                         # 检查是否已读
