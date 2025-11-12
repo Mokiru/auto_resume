@@ -223,7 +223,7 @@ def passive_resume(page):
                 time.sleep(random.uniform(5.0, 6.5))
                 unread_list_ele = page.ele(
                     r'xpath://*[@id="container"]/div[1]/div/div[2]/div[2]/div[1]/div[2]/div/div[2]')  # 获取列表元素
-                children_list = unread_list_ele.s_eles()
+                children_list = unread_list_ele.children()
                 if len(children_list) == 0:
                     # 没有未读
                     return
