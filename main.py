@@ -3,6 +3,9 @@ import os
 import random
 import time
 import traceback
+import tkinter as tk
+from tkinter import simpledialog
+from typing import Optional
 
 from DrissionPage import *
 from DrissionPage.errors import ElementNotFoundError
@@ -139,8 +142,13 @@ def _click_element(tab, ele, button='left', count=1, is_random=True):
     ele.click.at(offset_x=_offset_x, offset_y=_offset_y, button=button, count=count)
 
 
-def open_browser() -> Chromium:
-    browser = Chromium()
+def open_browser(path: Optional[str] = None) -> Chromium:
+    if path:
+        co = ChromiumOptions()
+        co.set_browser_path(path)
+        browser = Chromium(co)
+    else:
+        browser = Chromium()
     return browser
 
 
@@ -162,6 +170,7 @@ def check_unread(ele) -> bool:
     if not red_ele:
         return False
     return True
+
 
 def proactive_resume(page):
     """
@@ -256,8 +265,24 @@ def passive_resume(page):
             continue
 
 
+def popup_input(prompt: str = "请输入值") -> str | None:
+    """弹出输入框，返回字符串或 None（点取消）"""
+    root = tk.Tk()
+    root.withdraw()  # 隐藏主窗口
+    root.resizable(False, False)
+
+    root.attributes('-topmost', True)  # 置顶
+    user_input = simpledialog.askstring("输入", prompt, parent=root)
+    root.destroy()
+    return user_input
+
+
 def run():
-    browser = open_browser()
+    try:
+        browser = open_browser()
+    except FileNotFoundError:
+        print("未找到浏览器路径，手动指定")
+        browser = open_browser(popup_input("请输入浏览器路径"))
     page = browser.latest_tab  # 获取最新标签页
     page.get('https://www.zhipin.com/web/chat/index')  # 前往沟通页面
     # 等待登录
