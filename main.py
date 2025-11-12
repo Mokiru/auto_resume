@@ -1,6 +1,8 @@
 import math
+import os
 import random
 import time
+import traceback
 
 from DrissionPage import *
 from DrissionPage.errors import ElementNotFoundError
@@ -202,15 +204,13 @@ def passive_resume(page):
     click_element(page, r'xpath://*[@id="container"]/div[1]/div/div[2]/div[1]/div/div/div/div[2]/span')  # 点击新招呼
     click_element(page, r'xpath://*[@id="container"]/div[1]/div/div[2]/div[2]/div[1]/div[1]/div[2]/div/span[2]')  # 点击未读
     time.sleep(random.uniform(5.0, 6.5))
-    unread_list_ele = page.ele(
-        r'xpath://*[@id="container"]/div[1]/div/div[2]/div[2]/div[1]/div[2]/div/div[2]')  # 获取列表元素
+    unread_list_ele = page.ele(r'xpath://*[@id="container"]/div[1]/div/div[2]/div[2]/div[1]/div[2]/div/div[2]')  # 获取列表元素
     children_list = unread_list_ele.children()
     for ele in children_list:
         if not check_unread(ele):
             continue
         # 未读
         click_element(page, ele)
-
         try:
             chat_editor_ele = page.ele(r'xpath://*[@id="boss-chat-editor-input"]')
             click_element(page, chat_editor_ele)
@@ -251,4 +251,13 @@ def run():
 
 
 if __name__ == '__main__':
-    run()
+    try:
+        run()
+    except Exception as e:
+        # 打印异常到控制台
+        traceback.print_exc()
+        # 阻塞等待按键
+        if os.name == 'nt':  # Windows 下
+            os.system('pause')
+        else:  # Linux/Mac 可选
+            input("\nPress <Enter> to quit...")
