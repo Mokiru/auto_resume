@@ -202,29 +202,36 @@ def passive_resume(page):
     :return:
     """
     click_element(page, r'xpath://*[@id="container"]/div[1]/div/div[2]/div[1]/div/div/div/div[2]/span')  # 点击新招呼
-    click_element(page, r'xpath://*[@id="container"]/div[1]/div/div[2]/div[2]/div[1]/div[1]/div[2]/div/span[2]')  # 点击未读
-    time.sleep(random.uniform(5.0, 6.5))
-    unread_list_ele = page.ele(r'xpath://*[@id="container"]/div[1]/div/div[2]/div[2]/div[1]/div[2]/div/div[2]')  # 获取列表元素
-    children_list = unread_list_ele.children()
-    for ele in children_list:
-        if not check_unread(ele):
-            continue
-        # 未读
-        click_element(page, ele)
+    while True:
+        click_element(page, r'xpath://*[@id="container"]/div[1]/div/div[2]/div[2]/div[1]/div[1]/div[2]/div/span[2]')  # 点击未读
+        time.sleep(random.uniform(5.0, 6.5))
+        unread_list_ele = page.ele(r'xpath://*[@id="container"]/div[1]/div/div[2]/div[2]/div[1]/div[2]/div/div[2]')  # 获取列表元素
         try:
-            chat_editor_ele = page.ele(r'xpath://*[@id="boss-chat-editor-input"]')
-            click_element(page, chat_editor_ele)
-            page.actions.type('方便发一份你的简历过来吗？\n', interval=0.3)
-            time.sleep(random.uniform(0.5, 1.5))
-            get_resume_ele = page.ele(r'xpath://*[@id="container"]/div[1]/div/div[2]/div[2]/div[2]/div[1]/div[3]/div[1]/div[2]/div[1]/div[1]/span[1]')
-            click_element(page, get_resume_ele)
-            time.sleep(random.uniform(0.5, 1.5))
-            confirm_btn_ele = page.ele(
-                r'xpath://*[@id="container"]/div[1]/div/div[2]/div[2]/div[2]/div[1]/div[3]/div[1]/div[2]/div[1]/div[1]/div/div/span[2]')
-            click_element(page, confirm_btn_ele)
-            print("求简历")
-        except ElementNotFoundError:
-            print("失败，跳过")
+            children_list = unread_list_ele.children()
+            if len(children_list) == 0:
+                # 没有未读
+                break
+            for ele in children_list:
+                if not check_unread(ele):
+                    continue
+                # 未读
+                click_element(page, ele)
+                try:
+                    chat_editor_ele = page.ele(r'xpath://*[@id="boss-chat-editor-input"]')
+                    click_element(page, chat_editor_ele)
+                    page.actions.type('方便发一份你的简历过来吗？\n', interval=0.3)
+                    time.sleep(random.uniform(0.5, 1.5))
+                    get_resume_ele = page.ele(r'xpath://*[@id="container"]/div[1]/div/div[2]/div[2]/div[2]/div[1]/div[3]/div[1]/div[2]/div[1]/div[1]/span[1]')
+                    click_element(page, get_resume_ele)
+                    time.sleep(random.uniform(0.5, 1.5))
+                    confirm_btn_ele = page.ele(
+                        r'xpath://*[@id="container"]/div[1]/div/div[2]/div[2]/div[2]/div[1]/div[3]/div[1]/div[2]/div[1]/div[1]/div/div/span[2]')
+                    click_element(page, confirm_btn_ele)
+                    print("求简历")
+                except ElementNotFoundError:
+                    print("失败，跳过")
+                    continue
+        except Exception:
             continue
 
 
