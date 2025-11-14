@@ -209,7 +209,7 @@ def check_have_resume(page):
     :param page:
     :return:
     """
-    chat_message_ele = page.ele(
+    chat_message_ele = page.s_ele(
         r'xpath://*[@id="container"]/div[1]/div/div[2]/div[2]/div[2]/div[1]/div[1]/div[2]/div[2]')  # 获取消息框元素
     resum_icon_ele = chat_message_ele.ele(locator='@class=message-dialog-icon resume-icon')
     if not resum_icon_ele:
@@ -237,10 +237,6 @@ def passive_resume(page):
                     # 没有未读
                     return
                 for ele in children_list:
-                    if not check_unread(ele):
-                        # 检查是否已读
-                        continue
-                    # 未读
                     click_element(page, ele)
                     if check_have_resume(page):
                         print("当前已获取简历，跳过")
