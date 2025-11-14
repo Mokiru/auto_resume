@@ -236,8 +236,8 @@ def passive_resume(page):
                 click_element(page,
                               r'xpath://*[@id="container"]/div[1]/div/div[2]/div[2]/div[1]/div[1]/div[2]/div/span[2]')  # 点击未读
                 time.sleep(random.uniform(1.0, 1.5))
-                unread_list_ele = page.ele(
-                    r'xpath://*[@id="container"]/div[1]/div/div[2]/div[2]/div[1]/div[2]/div/div[2]')  # 获取列表元素
+                # unread_list_ele = page.ele(
+                #     r'xpath://*[@id="container"]/div[1]/div/div[2]/div[2]/div[1]/div[2]/div/div[2]')  # 获取列表元素
                 # //*[@id="container"]/div[1]/div/div[2]/div[2]/div[1]/div[2]/div/div[2]/div[1]
                 get_resume_key = {}
                 list_first_ele = page.ele(
