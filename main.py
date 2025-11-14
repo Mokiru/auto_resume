@@ -85,16 +85,16 @@ def get_point_list(start_point, end_point):
     min_y, max_y = min(_start_y, _end_y), max(_start_y, _end_y)
     control_x1 = _start_x + (_end_x - _start_x) * 0.3 + random.randint(-int(min_x),
                                                                        int(max_x - min_x)) if min_x > 0 else random.randint(
-        -50, 50)
+        -10, 10)
     control_y1 = _start_y + (_end_y - _start_y) * 0.2 + random.randint(-int(min_y),
                                                                        int(max_y - min_y)) if min_y > 0 else random.randint(
-        -30, 30)
+        -10, 10)
     control_x2 = _start_x + (_end_x - _start_x) * 0.7 + random.randint(-int(min_x),
                                                                        int(max_x - min_x)) if min_x > 0 else random.randint(
-        -50, 50)
+        -10, 10)
     control_y2 = _start_y + (_end_y - _start_y) * 0.8 + random.randint(-int(min_y),
                                                                        int(max_y - min_y)) if min_y > 0 else random.randint(
-        -30, 30)
+        -10, 10)
 
     return _cubic_bezier_curve(start_point, (control_x1, control_y1), (control_x2, control_y2), end_point,
                                num_points=num_points)
@@ -129,7 +129,7 @@ def _browser_mouse_move(tab, start_point, end_point):
             _x = max(0, _x + random.randint(-2, 2))
             _y = max(0, _y + random.randint(-2, 2))
         tab.actions.move_to(ele_or_loc=(_x, _y), duration=0.01)
-        time.sleep(random.uniform(0.01, 0.03))
+        # time.sleep(random.uniform(0.01, 0.03))
 
 
 def _click_element(tab, ele, button='left', count=1, is_random=True):
@@ -155,8 +155,11 @@ def open_browser(path: Optional[str] = None) -> Chromium:
 def click_element(page, xpath):
     ele = page.ele(xpath)
     _click_element(page, ele)
-    # _, _, ox, oy = get_ele_end_point(ele)
-    # ele.click.at(offset_x=ox, offset_y=oy)
+    time.sleep(random.uniform(0.3, 0.7))
+
+
+def click_element_by_ele(page, ele):
+    _click_element(page, ele)
     time.sleep(random.uniform(0.3, 0.7))
 
 
@@ -225,34 +228,49 @@ def passive_resume(page):
     """
     while True:
         try:
-            click_element(page, r'xpath://*[@id="container"]/div[1]/div/div[2]/div[1]/div/div/div/div[2]/span')  # 点击新招呼
+            new_call_ele = page.ele(r'xpath://*[@id="container"]/div[1]/div/div[2]/div[1]/div/div/div/div[2]')
+            if new_call_ele.attr('class') != 'chat-label-item selected':
+                # click_element(page, r'xpath://*[@id="container"]/div[1]/div/div[2]/div[1]/div/div/div/div[2]/span')  # 点击新招呼
+                new_call_ele.click()
             while True:
                 click_element(page,
                               r'xpath://*[@id="container"]/div[1]/div/div[2]/div[2]/div[1]/div[1]/div[2]/div/span[2]')  # 点击未读
-                time.sleep(random.uniform(5.0, 6.5))
+                time.sleep(random.uniform(1.0, 1.5))
                 unread_list_ele = page.ele(
                     r'xpath://*[@id="container"]/div[1]/div/div[2]/div[2]/div[1]/div[2]/div/div[2]')  # 获取列表元素
-                children_list = unread_list_ele.children()
-                if len(children_list) == 0:
-                    # 没有未读
+                # //*[@id="container"]/div[1]/div/div[2]/div[2]/div[1]/div[2]/div/div[2]/div[1]
+                get_resume_key = {}
+                list_first_ele = page.ele(
+                    r'xpath://*[@id="container"]/div[1]/div/div[2]/div[2]/div[1]/div[2]/div/div[2]/div[1]')
+                if not list_first_ele:
                     return
-                for ele in children_list:
-                    click_element(page, ele)
+                index = 1
+                while True:
+                    list_item_ele = page.ele(
+                        r'xpath://*[@id="container"]/div[1]/div/div[2]/div[2]/div[1]/div[2]/div/div[2]/div[' + str(
+                            index) + ']')
+                    if not list_item_ele:
+                        break
+                    index += 1
+                    key = list_item_ele.attr('key')
+                    if key in get_resume_key:
+                        print("已获取过该简历")
+                        continue
+                    click_element_by_ele(page, list_item_ele)
+                    get_resume_key[key] = 1
                     if check_have_resume(page):
                         print("当前已获取简历，跳过")
                         continue
                     try:
-                        chat_editor_ele = page.ele(r'xpath://*[@id="boss-chat-editor-input"]')  # 获取消息发送框元素
-                        click_element(page, chat_editor_ele)
+                        # chat_editor_ele = page.ele(r'xpath://*[@id="boss-chat-editor-input"]')  # 获取消息发送框元素
+                        # click_element(page, chat_editor_ele)
                         page.actions.type('方便发一份你的简历过来吗？\n')
                         time.sleep(random.uniform(1.0, 1.5))
-                        get_resume_ele = page.ele(
-                            r'xpath://*[@id="container"]/div[1]/div/div[2]/div[2]/div[2]/div[1]/div[3]/div[1]/div[2]/div[1]/div[1]/span[1]')
-                        click_element(page, get_resume_ele)
+                        click_element(page,
+                                      r'xpath://*[@id="container"]/div[1]/div/div[2]/div[2]/div[2]/div[1]/div[3]/div[1]/div[2]/div[1]/div[1]/span[1]')  # 求简历
                         time.sleep(random.uniform(0.5, 1.5))
-                        confirm_btn_ele = page.ele(
-                            r'xpath://*[@id="container"]/div[1]/div/div[2]/div[2]/div[2]/div[1]/div[3]/div[1]/div[2]/div[1]/div[1]/div/div/span[2]')
-                        click_element(page, confirm_btn_ele)
+                        click_element(page,
+                                      r'xpath://*[@id="container"]/div[1]/div/div[2]/div[2]/div[2]/div[1]/div[3]/div[1]/div[2]/div[1]/div[1]/div/div/span[2]') # 确认
                         print("求简历")
                     except ElementNotFoundError:
                         print("失败，跳过")
