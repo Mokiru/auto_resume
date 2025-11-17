@@ -12,7 +12,7 @@ def deadline_decorator(func):
     def wrapper(*args, **kwargs):
         deadline_time = dt_time(20, 00, 00)
         if args[0] != '':
-            hours, minutes, seconds = map(int, args[2].split(':'))
+            hours, minutes, seconds = map(int, args[0].split(':'))
             deadline_time = dt_time(hours, minutes, seconds)
 
         def check_deadline():
