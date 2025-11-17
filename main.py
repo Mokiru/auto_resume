@@ -229,7 +229,7 @@ def say_hello(page, job_input: str, filter_input: str, interrupt_check=None):
                     locator=MAIN_PAGE_AWESOME_PERSON_LIST_CARD_XPATH.format(index), timeout=5)  # 获取卡片元素
                 if not _card_ele:
                     # 当前职位已经没有推荐牛人
-                    page.actions.scroll(delta_y=200)  # 滑动到底部
+                    page.actions.scroll(delta_y=500)  # 滑动到底部
                     _card_ele = page.ele(
                         locator=MAIN_PAGE_AWESOME_PERSON_LIST_CARD_XPATH.format(index), timeout=10)
                     if not _card_ele:
