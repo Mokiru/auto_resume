@@ -28,6 +28,7 @@ MAIN_PAGE_AWESOME_PERSON_LIST_SAY_HELLO_BTN_XPATH = r'xpath://*[@id="recommend-l
 MAIN_PAGE_AWESOME_PERSON_FILTER_LABEL_XPATH = r'xpath://*[@id="headerWrap"]/div/div/div[4]/div/div/div'  # 推荐牛人中筛选xpath
 MAIN_PAGE_AWESOME_PERSON_FILTER_WRAP_XPATH = r'xpath://*[@id="headerWrap"]/div/div/div[4]/div/div[2]/div[1]'  # 筛选界面
 MAIN_PAGE_AWESOME_PERSON_FILTER_VIP_ITEM_XPATH_FORMAT = r'xpath://*[@id="headerWrap"]/div/div/div[4]/div/div[2]/div[1]/div[1]/div[2]/div[{0}]'  # VIP筛选项元素
+MAIN_PAGE_AWESOME_PERSON_FILTER_FIX_VIP_ITEM_XPATH_FORMAT = r'xpath://*[@id="headerWrap"]/div/div/div[4]/div/div[2]/div[1]/div[1]/div[3]/div[{0}]'  # VIP筛选项元素
 MAIN_PAGE_AWESOME_PERSON_FILTER_NORMAL_ITEM_XPATH_FORMAT = r'xpath://*[@id="headerWrap"]/div/div/div[4]/div/div[2]/div[1]/div[2]/div[{0}]'  # 普通筛选项元素
 MAIN_PAGE_AWESOME_PERSON_FILTER_WRAP_CONFIRM_XPATH = r'xpath://*[@id="headerWrap"]/div/div/div[4]/div/div[2]/div[2]/div[2]'  # 筛选界面确认按钮xpath
 MAIN_PAGE_COMMUNICATION_MESSAGE_CHAT_XPATH = r'xpath://*[@id="container"]/div[1]/div/div[2]/div[2]/div[2]/div[1]/div[1]/div[2]/div[2]'  # 沟通中的消息对话框xpath
@@ -310,13 +311,14 @@ def get_filter_list(page):
     :return:
     """
     result = []
-
     wait_for_ele(page=page, xpath=MAIN_PAGE_AWESOME_PERSON_FILTER_LABEL_XPATH, funcs=[click_element_by_ele])  # 点击筛选按钮
     result += get_filter_option_list(page, MAIN_PAGE_AWESOME_PERSON_FILTER_VIP_ITEM_XPATH_FORMAT)
+    result += get_filter_option_list(page, MAIN_PAGE_AWESOME_PERSON_FILTER_FIX_VIP_ITEM_XPATH_FORMAT)
     result += get_filter_option_list(page, MAIN_PAGE_AWESOME_PERSON_FILTER_NORMAL_ITEM_XPATH_FORMAT)
     # return ['刚刚活跃', '今日活跃', '本周活跃', '本月活跃', '男', '女', '近14天没有', '近一个月没有', '985', '211',
     #         '双一流院校', '留学', '国内外名校', '公办本科', '5年少于3份', '平均每份工作大于1年', '在校/应届',
     #         '25年毕业', '26年毕业', '26年']
+    print(result)
     return result
 
 
