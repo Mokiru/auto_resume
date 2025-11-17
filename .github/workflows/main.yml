@@ -3,6 +3,9 @@ name: build python
 on:
   push:
     branches: [ master ]
+permissions:
+  contents: write
+  actions: write
 
 jobs:
   analyze-commits:
