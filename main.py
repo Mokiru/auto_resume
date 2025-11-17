@@ -10,6 +10,8 @@ from DrissionPage.errors import ElementNotFoundError
 from base_operates import click_element, click_element_by_ele, open_browser
 from operate_extensions import if_not_selected_click
 
+COMMUNICATION_MESSAGE_CHAT_XPATH = r'xpath://*[@id="container"]/div[1]/div/div[2]/div[2]/div[2]/div[1]/div[1]/div[2]/div[2]'
+
 
 def check_unread(ele) -> bool:
     """
@@ -58,9 +60,10 @@ def proactive_resume(page):
                     click_element_by_ele(page, list_item_ele)
                     get_resume_key[key] = True
                     chat_message_ele = page.s_ele(
-                        r'xpath://*[@id="container"]/div[1]/div/div[2]/div[2]/div[2]/div[1]/div[1]/div[2]/div[2]',
+                        COMMUNICATION_MESSAGE_CHAT_XPATH,
                         timeout=5)  # 获取消息框元素
-                    if chat_message_ele.ele(locator='@class=message-dialog-icon resume-icon'):
+                    # if chat_message_ele.ele(locator='@class=message-dialog-icon resume-icon'):
+                    if chat_message_ele.ele(locator='@text()=点击预览附件简历'):
                         # 发送过简历
                         continue
                     can_confirm = [0, False]
@@ -72,8 +75,10 @@ def proactive_resume(page):
                         break
                     if can_confirm[1]:
                         # 点击同意，接收简历
-                        _confirm_message = page.ele(locator=r'xpath://*[@id="container"]/div[1]/div/div[2]/div[2]/div[2]/div[1]/div[1]/div[2]/div[2]', timeout=5).child(index=can_confirm[0])
-                        click_element_by_ele(page, _confirm_message.ele(locator='同意'))
+                        print('点击同意，接收简历')
+                        _confirm_message = page.ele(locator=COMMUNICATION_MESSAGE_CHAT_XPATH, timeout=5).child(index=can_confirm[0])
+                        _confirm_btn = _confirm_message.ele(locator='@@class=card-btn@@text()=同意')
+                        click_element_by_ele(page, _confirm_btn)
                         continue
                     page.actions.type('方便发一份你的简历过来吗？\n')
                     time.sleep(random.uniform(1.0, 1.5))
@@ -137,7 +142,7 @@ def passive_resume(page):
                     click_element_by_ele(page, list_item_ele)
                     get_resume_key[key] = True
                     chat_message_ele = page.s_ele(
-                        r'xpath://*[@id="container"]/div[1]/div/div[2]/div[2]/div[2]/div[1]/div[1]/div[2]/div[2]',
+                        COMMUNICATION_MESSAGE_CHAT_XPATH,
                         timeout=5)  # 获取消息框元素
                     resum_icon_ele = chat_message_ele.ele(locator='@class=message-dialog-icon resume-icon')
                     if resum_icon_ele:
@@ -191,7 +196,7 @@ def run():
     page.get('https://www.zhipin.com/web/chat/index')
     click_element(page, r'xpath://*[@id="wrap"]/div[1]/div/dl[4]/dt/a')  # 点击沟通
     proactive_resume(page)  # 第一步 收取主动打招呼的简历
-    # passive_resume(page)  # 第二步处理新招呼 求简历
+    passive_resume(page)  # 第二步处理新招呼 求简历
 
 
 if __name__ == '__main__':
