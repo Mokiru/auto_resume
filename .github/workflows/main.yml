@@ -10,42 +10,20 @@ jobs:
     outputs:
       version-type: ${{ steps.analyze.outputs.version-type }}
       should-release: ${{ steps.analyze.outputs.should-release }}
-      new-tag: ${{ steps.versions.outputs.NEW_TAG }}
+      new-tag: ${{ steps.analyze.outputs.new-tag }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Analyze commits for version bump
+      - name: Analyze commits and calculate version
         id: analyze
         run: |
           # 获取最新提交信息
           $LATEST_COMMIT_MSG = git log -1 --pretty=%B
           Write-Host "Latest commit: $LATEST_COMMIT_MSG"
           
-          # 分析提交信息决定版本类型
-          if ($LATEST_COMMIT_MSG -match "feat:" -or $LATEST_COMMIT_MSG -match "feature:") {
-            Write-Host "version-type=minor" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-            Write-Host "should-release=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-            Write-Host "✅ 检测到 feat/feature，触发 minor 版本发布"
-          } elseif ($LATEST_COMMIT_MSG -match "fix:" -or $LATEST_COMMIT_MSG -match "bugfix:") {
-            Write-Host "version-type=patch" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-            Write-Host "should-release=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-            Write-Host "✅ 检测到 fix/bugfix，触发 patch 版本发布"
-          } elseif ($LATEST_COMMIT_MSG -match "BREAKING CHANGE:" -or $LATEST_COMMIT_MSG -match "major:") {
-            Write-Host "version-type=major" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-            Write-Host "should-release=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-            Write-Host "✅ 检测到 BREAKING CHANGE/major，触发 major 版本发布"
-          } else {
-            Write-Host "version-type=skip" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-            Write-Host "should-release=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-            Write-Host "❌ 未检测到触发发布的提交类型，跳过发布"
-          }
-
-      - name: Get latest version
-        id: versions
-        run: |
           # 获取最新的tag
           $LATEST_TAG = git describe --tags --abbrev=0 2>$null
           if (-not $LATEST_TAG) { 
@@ -66,10 +44,32 @@ jobs:
             Write-Host "使用默认版本: v0.0.0"
           }
           
-          # 根据分析结果增加版本
-          $VERSION_TYPE = "${{ steps.analyze.outputs.version-type }}"
-          Write-Host "Version type: $VERSION_TYPE"
+          # 分析提交信息决定版本类型
+          $VERSION_TYPE = "skip"
+          $SHOULD_RELEASE = "false"
           
+          if ($LATEST_COMMIT_MSG -match "feat:" -or $LATEST_COMMIT_MSG -match "feature:") {
+            $VERSION_TYPE = "minor"
+            $SHOULD_RELEASE = "true"
+            Write-Host "✅ 检测到 feat/feature，触发 minor 版本发布"
+          } elseif ($LATEST_COMMIT_MSG -match "fix:" -or $LATEST_COMMIT_MSG -match "bugfix:") {
+            $VERSION_TYPE = "patch"
+            $SHOULD_RELEASE = "true"
+            Write-Host "✅ 检测到 fix/bugfix，触发 patch 版本发布"
+          } elseif ($LATEST_COMMIT_MSG -match "BREAKING CHANGE:" -or $LATEST_COMMIT_MSG -match "major:") {
+            $VERSION_TYPE = "major"
+            $SHOULD_RELEASE = "true"
+            Write-Host "✅ 检测到 BREAKING CHANGE/major，触发 major 版本发布"
+          } else {
+            $VERSION_TYPE = "skip"
+            $SHOULD_RELEASE = "false"
+            Write-Host "❌ 未检测到触发发布的提交类型，跳过发布"
+          }
+          
+          Write-Host "Version type: $VERSION_TYPE"
+          Write-Host "Should release: $SHOULD_RELEASE"
+          
+          # 根据分析结果计算新版本
           switch ($VERSION_TYPE) {
             "major" {
               $MAJOR = [int]$MAJOR + 1
@@ -96,9 +96,13 @@ jobs:
           if (-not $NEW_VERSION) {
             $NEW_VERSION = "v${MAJOR}.${MINOR}.${PATCH}"
           }
-          Write-Host "NEW_VERSION=$NEW_VERSION" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-          Write-Host "NEW_TAG=$NEW_VERSION" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          
           Write-Host "新版本: $NEW_VERSION"
+          
+          # 设置输出
+          Write-Host "version-type=$VERSION_TYPE" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          Write-Host "should-release=$SHOULD_RELEASE" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          Write-Host "new-tag=$NEW_VERSION" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
   create-tag:
     needs: analyze-commits
@@ -112,6 +116,14 @@ jobs:
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Debug outputs
+        run: |
+          Write-Host "=== 调试信息 ==="
+          Write-Host "版本类型: ${{ needs.analyze-commits.outputs.version-type }}"
+          Write-Host "是否发布: ${{ needs.analyze-commits.outputs.should-release }}"
+          Write-Host "新标签: ${{ needs.analyze-commits.outputs.new-tag }}"
+          Write-Host "================="
 
       - name: Create Git tag
         run: |
@@ -132,8 +144,6 @@ jobs:
             git push origin $TAG
             Write-Host "✅ 标签 $TAG 创建成功"
           }
-          
-          Write-Host "TAG_NAME=$TAG" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
   build-and-release:
     needs: [analyze-commits, create-tag]
@@ -141,12 +151,13 @@ jobs:
     steps:
       - name: Debug information
         run: |
-          Write-Host "=== 调试信息 ==="
+          Write-Host "=== 构建调试信息 ==="
           Write-Host "触发事件: ${{ github.event_name }}"
           Write-Host "引用: ${{ github.ref }}"
           Write-Host "引用名称: ${{ github.ref_name }}"
           Write-Host "SHA: ${{ github.sha }}"
           Write-Host "是否需要发布: ${{ needs.analyze-commits.outputs.should-release }}"
+          Write-Host "版本类型: ${{ needs.analyze-commits.outputs.version-type }}"
           Write-Host "新标签: ${{ needs.analyze-commits.outputs.new-tag }}"
           Write-Host "================="
 
