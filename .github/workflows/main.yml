@@ -100,9 +100,9 @@ jobs:
           Write-Host "新版本: $NEW_VERSION"
           
           # 正确设置多个输出
-          Write-Host "::set-output name=version-type::$VERSION_TYPE"
-          Write-Host "::set-output name=should-release::$SHOULD_RELEASE"
-          Write-Host "::set-output name=new-tag::$NEW_VERSION"
+          echo "version-type=${VERSION_TYPE}" >> $GITHUB_OUTPUT
+          echo "should-release=${SHOULD_RELEASE}" >> $GITHUB_OUTPUT
+          echo "new-tag=${NEW_VERSION}" >> $GITHUB_OUTPUT
           
           Write-Host "✅ 输出设置完成"
 
