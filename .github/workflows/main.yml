@@ -37,7 +37,8 @@ jobs:
             $MINOR = $Matches[2] 
             $PATCH = $Matches[3]
             Write-Host "解析版本: v$MAJOR.$MINOR.$PATCH"
-          } elseJOR = 0
+          } else {
+            $MAJOR = 0
             $MINOR = 0
             $PATCH = 0
             Write-Host "使用默认版本: v0.0.0"
