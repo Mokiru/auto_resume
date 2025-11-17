@@ -52,6 +52,7 @@ def check_dialog_popup(page, locator):
         if _error_ele:
             # 出现验证
             show_warning_dialog('请处理验证')
+            print('验证')
         else:
             time.sleep(1)
             continue

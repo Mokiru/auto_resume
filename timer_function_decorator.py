@@ -11,7 +11,7 @@ def deadline_decorator(func):
 
     def wrapper(*args, **kwargs):
         deadline_time = dt_time(20, 00, 00)
-        if args[2] != '':
+        if args[0] != '':
             hours, minutes, seconds = map(int, args[2].split(':'))
             deadline_time = dt_time(hours, minutes, seconds)
 

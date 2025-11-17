@@ -2,13 +2,14 @@ import os
 import random
 import time
 import traceback
+import re
 
 from DrissionPage.errors import ElementNotFoundError
 
 from base_operates import click_element, click_element_by_ele, open_browser
 from operate_extensions import if_not_selected_click
 from page_decorator import say_call_dialog_solve, popup_when_ele_existed
-from simple_dialog import popup_input, popup_multiple_inputs
+from simple_dialog import popup_input, popup_multiple_multiselect, get_global_root
 from timer_function_decorator import deadline_decorator
 
 CAPTCHA_PAGE_LOCATOR = '@text()=您的账号可能存在异常访问行为'
@@ -20,13 +21,17 @@ MAIN_PAGE_AWESOME_PERSON_CHAT_SETTING_CONTAINER_XPATH = r'xpath:/html/body/div[5
 MAIN_PAGE_AWESOME_PERSON_XPATH = r'xpath://*[@id="wrap"]/div[1]/div/dl[2]'  # 主界面左侧菜单推荐牛人元素xpath
 MAIN_PAGE_AWESOME_PERSON_SEARCH_LABEL_XPATH = r'xpath://*[@id="headerWrap"]/div/div/div[2]'  # 主界面点击推荐牛人后的职位筛选框xpath
 MAIN_PAGE_AWESOME_PERSON_JOB_SEARCH_XPATH = r'xpath://*[@id="headerWrap"]/div/div/div[2]/div[2]/div[1]/input'  # 点击推荐牛人职位筛选框后出现的搜索框xpath
+MAIN_PAGE_AWESOME_PERSON_JOB_LIST_INDEX_XPATH_FORMAT = r'xpath://*[@id="headerWrap"]/div/div/div[2]/div[2]/ul/li[{0}]'  # 职位列表
 MAIN_PAGE_AWESOME_PERSON_JOB_LIST_FIRST_XPATH = r'xpath://*[@id="headerWrap"]/div/div/div[2]/div[2]/ul/li[1]'  # 点击推荐牛人职位筛选框后职位列表的第一个元素xpath
 MAIN_PAGE_AWESOME_PERSON_LIST_CARD_XPATH = r'xpath://*[@id="recommend-list"]/div/ul/li[{0}]'  # 推荐牛人列表card-item format xpath
 MAIN_PAGE_AWESOME_PERSON_LIST_SAY_HELLO_BTN_XPATH = r'xpath://*[@id="recommend-list"]/div/ul/li[{0}]/div/div[3]/div[3]/span/div/button'  # 点击推荐牛人后出现的牛人列表中打招呼format xpath
 MAIN_PAGE_AWESOME_PERSON_FILTER_LABEL_XPATH = r'xpath://*[@id="headerWrap"]/div/div/div[4]/div/div/div'  # 推荐牛人中筛选xpath
 MAIN_PAGE_AWESOME_PERSON_FILTER_WRAP_XPATH = r'xpath://*[@id="headerWrap"]/div/div/div[4]/div/div[2]/div[1]'  # 筛选界面
+MAIN_PAGE_AWESOME_PERSON_FILTER_VIP_ITEM_XPATH_FORMAT = r'xpath://*[@id="headerWrap"]/div/div/div[4]/div/div[2]/div[1]/div[1]/div[2]/div[{0}]'  # VIP筛选项元素
+MAIN_PAGE_AWESOME_PERSON_FILTER_NORMAL_ITEM_XPATH_FORMAT = r'xpath://*[@id="headerWrap"]/div/div/div[4]/div/div[2]/div[1]/div[2]/div[{0}]'  # 普通筛选项元素
 MAIN_PAGE_AWESOME_PERSON_FILTER_WRAP_CONFIRM_XPATH = r'xpath://*[@id="headerWrap"]/div/div/div[4]/div/div[2]/div[2]/div[2]'  # 筛选界面确认按钮xpath
 MAIN_PAGE_COMMUNICATION_MESSAGE_CHAT_XPATH = r'xpath://*[@id="container"]/div[1]/div/div[2]/div[2]/div[2]/div[1]/div[1]/div[2]/div[2]'  # 沟通中的消息对话框xpath
+MAIN_PAGE_COMMUNICATION_XPATH = r'xpath://*[@id="wrap"]/div[1]/div/dl[4]'
 
 
 def check_unread(ele) -> bool:
@@ -79,8 +84,9 @@ def proactive_resume(page):
                         MAIN_PAGE_COMMUNICATION_MESSAGE_CHAT_XPATH,
                         timeout=5)  # 获取消息框元素
                     # if chat_message_ele.ele(locator='@class=message-dialog-icon resume-icon'):
-                    if chat_message_ele.ele(locator='@text()=点击预览附件简历'):
+                    if chat_message_ele.ele(locator='@text()=点击预览附件简历', timeout=2):
                         # 发送过简历
+                        print('对方已经发送简历')
                         continue
                     can_confirm = [0, False]
                     for _message_ele in chat_message_ele.children():
@@ -96,6 +102,9 @@ def proactive_resume(page):
                                                     timeout=5).child(index=can_confirm[0])
                         _confirm_btn = _confirm_message.ele(locator='@@class=card-btn@@text()=同意')
                         click_element_by_ele(page, _confirm_btn)
+                        continue
+                    if chat_message_ele.ele(locator='@text()=方便发一份你的简历过来吗？', timeout=2):
+                        print('当前已经请求简历，但对方未发送')
                         continue
                     page.actions.type('方便发一份你的简历过来吗？\n')
                     time.sleep(random.uniform(1.0, 1.5))
@@ -161,8 +170,9 @@ def passive_resume(page):
                     chat_message_ele = page.s_ele(
                         MAIN_PAGE_COMMUNICATION_MESSAGE_CHAT_XPATH,
                         timeout=5)  # 获取消息框元素
-                    resum_icon_ele = chat_message_ele.ele(locator='@class=message-dialog-icon resume-icon')
-                    if resum_icon_ele:
+                    if chat_message_ele.ele(locator='@class=message-dialog-icon resume-icon',
+                                            timeout=2) or chat_message_ele.ele(
+                        locator='@text()=方便发一份你的简历过来吗？', timeout=2):
                         print("当前已获取简历，跳过")
                         continue
                     page.actions.type('方便发一份你的简历过来吗？\n')
@@ -218,13 +228,13 @@ def say_hello(page, job_input: str, filter_input: str, interrupt_check=None):
                     locator=MAIN_PAGE_AWESOME_PERSON_LIST_CARD_XPATH.format(index), timeout=5)  # 获取卡片元素
                 if not _card_ele:
                     # 当前职位已经没有推荐牛人
-                    page.actions.scroll(delta_y=100)  # 滑动到底部
+                    page.actions.scroll(delta_y=200)  # 滑动到底部
                     _card_ele = page.ele(
-                        locator=MAIN_PAGE_AWESOME_PERSON_LIST_CARD_XPATH.format(index), timeout=5)
+                        locator=MAIN_PAGE_AWESOME_PERSON_LIST_CARD_XPATH.format(index), timeout=10)
                     if not _card_ele:
                         print('当前职位已经没有推荐牛人')
                         break
-                _say_hello_ele = _card_ele.ele(locator='@class=btn btn-greet', timeout=2)
+                _say_hello_ele = _card_ele.ele(locator='xpath:div/div[3]/div[3]/span/div/button', timeout=2)
                 index += 1
                 if not _say_hello_ele:
                     print('say_hello not found')
@@ -253,19 +263,80 @@ def close_message_information(page):
         print("已关闭消息提醒")
 
 
+def get_position_list(page):
+    """
+    获取当前账号的职位列表
+    :param page:
+    :return: 职位列表
+    """
+    result = []
+    wait_for_ele(page=page, xpath=MAIN_PAGE_AWESOME_PERSON_SEARCH_LABEL_XPATH, funcs=[click_element_by_ele])
+    index = 1
+    while True:
+        _job_ele = page.ele(locator=MAIN_PAGE_AWESOME_PERSON_JOB_LIST_INDEX_XPATH_FORMAT.format(index), timeout=2)
+        if not _job_ele:
+            break
+        result.append(re.search(r'</u>(.*?)</span>', _job_ele.html).group(1))
+        index += 1
+    return result
+
+
+def get_filter_option_list(page, format_str):
+    """
+    获取筛选项option
+    :param page:
+    :param format_str:
+    :return:
+    """
+    index = 1
+    result = []
+    while True:
+        _filter_item_ele = page.ele(locator=format_str.format(index), timeout=2)
+        if not _filter_item_ele:
+            break
+        index += 1
+        if _filter_item_ele.attr('class') == 'filter-item age':
+            continue
+        _options = _filter_item_ele.eles(locator='@class=option')
+        for _option_ele in _options:
+            result.append(_option_ele.raw_text)
+    return result
+
+
+def get_filter_list(page):
+    """
+    获取筛选条件列表
+    :param page:
+    :return:
+    """
+    result = []
+
+    wait_for_ele(page=page, xpath=MAIN_PAGE_AWESOME_PERSON_FILTER_LABEL_XPATH, funcs=[click_element_by_ele])  # 点击筛选按钮
+    result += get_filter_option_list(page, MAIN_PAGE_AWESOME_PERSON_FILTER_VIP_ITEM_XPATH_FORMAT)
+    result += get_filter_option_list(page, MAIN_PAGE_AWESOME_PERSON_FILTER_NORMAL_ITEM_XPATH_FORMAT)
+    # return ['刚刚活跃', '今日活跃', '本周活跃', '本月活跃', '男', '女', '近14天没有', '近一个月没有', '985', '211',
+    #         '双一流院校', '留学', '国内外名校', '公办本科', '5年少于3份', '平均每份工作大于1年', '在校/应届',
+    #         '25年毕业', '26年毕业', '26年']
+    return result
+
+
 @popup_when_ele_existed(locator=CAPTCHA_PAGE_LOCATOR)
-def do_chain(page, _job_input: str, _filter_input: str):
-    # 进入主界面
+def do_chain(page):
     page.get('https://www.zhipin.com/web/chat/recommend')  # 推荐牛人界面
+    _job_input, _filter_input = popup_multiple_multiselect(
+        ["请输入职位名称,多个职位使用;(英文输入法)分隔", "请输入职位筛选条件,多个条件使用;(英文输入法)分隔"],
+        [get_position_list(page), get_filter_list(page)])
+    print(_job_input, _filter_input)
+    # 进入主界面
     close_message_information(page)  # 关闭消息提醒
     say_hello(page, _job_input, _filter_input)  # 第一步 打招呼
-    click_element(page, r'xpath://*[@id="wrap"]/div[1]/div/dl[4]/dt/a')  # 点击沟通
+    click_element(page=page, xpath=MAIN_PAGE_COMMUNICATION_XPATH)  # 点击沟通
     proactive_resume(page)  # 第二步 收取主动打招呼的简历
     passive_resume(page)  # 第三步 处理新招呼 求简历
 
 
 @deadline_decorator
-def run(_job_input: str, _filter_input: str, _deadline_time: str):
+def run(_deadline_time: str):
     try:
         browser = open_browser()
     except FileNotFoundError:
@@ -284,15 +355,18 @@ def run(_job_input: str, _filter_input: str, _deadline_time: str):
             # 元素不存在说明非登录状态
             print('等待登录...')
             continue
-    do_chain(page, _job_input, _filter_input)
+    do_chain(page)
+
+
+def prepare_run():
+    _deadline_time = popup_input('自动终止时间(24小时制),不填默认20:00:00')
+    run(_deadline_time)
 
 
 if __name__ == '__main__':
     try:
-        _job_input, _filter_input, _deadline_time = popup_multiple_inputs(
-            ["请输入职位名称,多个职位使用;(英文输入法)分隔", "请输入职位筛选条件,多个条件使用;(英文输入法)分隔",
-             "自动终止时间(24小时制),不填默认20:00:00"])
-        run(_job_input, _filter_input, _deadline_time)
+        root = get_global_root()
+        prepare_run()
     except Exception as e:
         # 打印异常到控制台
         traceback.print_exc()
