@@ -105,7 +105,7 @@ def proactive_resume(page):
                     click_element(page,
                                   r'xpath://*[@id="container"]/div[1]/div/div[2]/div[2]/div[2]/div[1]/div[3]/div[1]/div[2]/div[1]/div[1]/div/div/span[2]')  # 确认
                     print("求简历")
-                except ElementNotFoundError:
+                except Exception:
                     get_resume_key[key] = False
                     continue
 
