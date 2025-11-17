@@ -1,101 +1,285 @@
 name: build python
+
 on:
   push:
-    tags: [ 'v*' ]
-permissions:
-  contents: write  
+    branches: [ master ]
 
 jobs:
+  analyze-commits:
+    runs-on: windows-latest
+    outputs:
+      version-type: ${{ steps.analyze.outputs.version-type }}
+      should-release: ${{ steps.analyze.outputs.should-release }}
+      new-tag: ${{ steps.versions.outputs.NEW_TAG }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Analyze commits for version bump
+        id: analyze
+        run: |
+          # 获取最新提交信息
+          $LATEST_COMMIT_MSG = git log -1 --pretty=%B
+          echo "Latest commit: $LATEST_COMMIT_MSG"
+          
+          # 分析提交信息决定版本类型
+          if ($LATEST_COMMIT_MSG -match "feat:" -or $LATEST_COMMIT_MSG -match "feature:") {
+            echo "version-type=minor" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            echo "should-release=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            echo "✅ 检测到 feat/feature，触发 minor 版本发布"
+          } elseif ($LATEST_COMMIT_MSG -match "fix:" -or $LATEST_COMMIT_MSG -match "bugfix:") {
+            echo "version-type=patch" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            echo "should-release=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            echo "✅ 检测到 fix/bugfix，触发 patch 版本发布"
+          } elseif ($LATEST_COMMIT_MSG -match "BREAKING CHANGE:" -or $LATEST_COMMIT_MSG -match "major:") {
+            echo "version-type=major" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            echo "should-release=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            echo "✅ 检测到 BREAKING CHANGE/major，触发 major 版本发布"
+          } else {
+            echo "version-type=skip" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            echo "should-release=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            echo "❌ 未检测到触发发布的提交类型，跳过发布"
+          }
+
+      - name: Get latest version
+        id: versions
+        run: |
+          # 获取最新的tag
+          $LATEST_TAG = git describe --tags --abbrev=0 2>$null
+          if (-not $LATEST_TAG) { $LATEST_TAG = "v0.0.0" }
+          echo "Latest tag: $LATEST_TAG"
+          
+          # 解析版本号
+          if ($LATEST_TAG -match "^v(\d+)\.(\d+)\.(\d+)$") {
+            $MAJOR = $Matches[1]
+            $MINOR = $Matches[2] 
+            $PATCH = $Matches[3]
+          } else {
+            $MAJOR = 0
+            $MINOR = 0
+            $PATCH = 0
+          }
+          
+          # 根据分析结果增加版本
+          $VERSION_TYPE = "${{ steps.analyze.outputs.version-type }}"
+          echo "Version type: $VERSION_TYPE"
+          
+          switch ($VERSION_TYPE) {
+            "major" {
+              $MAJOR = [int]$MAJOR + 1
+              $MINOR = 0
+              $PATCH = 0
+              echo "🔄 Major 版本升级"
+            }
+            "minor" {
+              $MINOR = [int]$MINOR + 1
+              $PATCH = 0
+              echo "🔄 Minor 版本升级"
+            }
+            "patch" {
+              $PATCH = [int]$PATCH + 1
+              echo "🔄 Patch 版本升级"
+            }
+            default {
+              echo "⚪ 跳过版本升级"
+              # 使用当前最新tag作为新版本
+              $NEW_VERSION = $LATEST_TAG
+            }
+          }
+          
+          if (-not $NEW_VERSION) {
+            $NEW_VERSION = "v${MAJOR}.${MINOR}.${PATCH}"
+          }
+          echo "NEW_VERSION=$NEW_VERSION" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          echo "NEW_TAG=$NEW_VERSION" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          echo "新版本: $NEW_VERSION"
+
+  create-tag:
+    needs: analyze-commits
+    if: needs.analyze-commits.outputs.should-release == 'true'
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create Git tag
+        run: |
+          $TAG = "${{ needs.analyze-commits.outputs.new-tag }}"
+          $SHA = "${{ github.sha }}"
+          
+          echo "创建标签: $TAG (提交: $SHA)"
+          
+          # 检查标签是否已存在
+          $existing_tag = git ls-remote --tags origin "refs/tags/$TAG" 2>$null
+          if ($existing_tag) {
+            echo "⚠️ 标签 $TAG 已存在，跳过创建"
+          } else {
+            # 创建并推送标签
+            git config user.name "GitHub Actions"
+            git config user.email "actions@github.com"
+            git tag $TAG $SHA
+            git push origin $TAG
+            echo "✅ 标签 $TAG 创建成功"
+          }
+          
+          echo "TAG_NAME=$TAG" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
   build-and-release:
+    needs: [analyze-commits, create-tag]
     runs-on: windows-latest
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0  # 获取完整历史记录
+      - name: Debug information
+        run: |
+          echo "=== 调试信息 ==="
+          echo "触发事件: ${{ github.event_name }}"
+          echo "引用: ${{ github.ref }}"
+          echo "引用名称: ${{ github.ref_name }}"
+          echo "SHA: ${{ github.sha }}"
+          echo "是否需要发布: ${{ needs.analyze-commits.outputs.should-release }}"
+          echo "新标签: ${{ needs.analyze-commits.outputs.new-tag }}"
+          echo "================="
 
-    - name: Extract version (fix double v issue)
-      id: get_version
-      run: |
-        # 正确处理版本号，移除开头的 v
-        $version = "${{ github.ref_name }}"
-        if ($version.StartsWith('v')) {
-            $version = $version.Substring(1)
-        }
-        echo "version=$version" >> $env:GITHUB_OUTPUT
-        echo "Cleaned version: $version"
-
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.10'
-
-    - name: Install dependencies
-      run: |
-        pip install --upgrade pip
-        pip install -r requirements.txt
-        pip install pyinstaller
-
-    - name: Build executable
-      run: |
-        pyinstaller --onefile main.py
-
-    - name: Create ZIP package
-      id: create_package
-      run: |
-        $version = "${{ steps.get_version.outputs.version }}"
-        $packageName = "AutoBoss-v$version"
-        
-        # 创建压缩包
-        Compress-Archive -Path "dist/main.exe" -DestinationPath "$packageName.zip" -Force
-        
-        # 验证文件存在
-        if (Test-Path "$packageName.zip") {
-            echo "✅ Package created: $packageName.zip"
-            echo "package_name=$packageName.zip" >> $env:GITHUB_OUTPUT
-        } else {
-            echo "❌ Package creation failed"
-            exit 1
-        }
-
-    - name: List files for debugging
-      run: |
-        echo "Current directory:"
-        Get-Location
-        echo "Files:"
-        Get-ChildItem -Recurse
-        echo "Package files:"
-        Get-ChildItem *.zip
-
-    - name: Create GitHub Release
-      if: steps.check-release.outputs.release_exists == 'false'
-      uses: softprops/action-gh-release@v1
-      with:
-        tag_name: ${{ github.ref_name }}
-        name: Release ${{ github.ref_name }}
-        body: |
-          # AutoBoss ${{ github.ref_name }}
+      - name: Determine target tag
+        id: target-tag
+        run: |
+          # 决定使用哪个标签
+          if ("${{ needs.analyze-commits.outputs.should-release }}" -eq "true") {
+            $TAG = "${{ needs.analyze-commits.outputs.new-tag }}"
+            echo "使用新标签: $TAG"
+          } else {
+            # 获取最新的现有标签
+            $TAG = git describe --tags --abbrev=0 2>$null
+            if (-not $TAG) { 
+              $TAG = "v0.0.0" 
+              echo "⚠️ 未找到现有标签，使用默认: $TAG"
+            } else {
+              echo "使用现有标签: $TAG"
+            }
+          }
           
-          ## 自动构建版本
+          # 清理版本号（移除开头的v）
+          $VERSION = $TAG
+          if ($VERSION.StartsWith('v')) {
+              $VERSION = $VERSION.Substring(1)
+          }
           
-          ### 下载
-          - [AutoBoss-v${{ steps.get_version.outputs.version }}.zip](AutoBoss-v${{ steps.get_version.outputs.version }}.zip)
+          echo "TAG_NAME=$TAG" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          echo "VERSION=$VERSION" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          echo "最终版本: $VERSION"
+
+      - name: Checkout specific tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.target-tag.outputs.TAG_NAME }}
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Build executable
+        run: |
+          pyinstaller --onefile main.py
+
+      - name: Create ZIP package
+        id: create_package
+        run: |
+          $version = "${{ steps.target-tag.outputs.VERSION }}"
+          $packageName = "AutoBoss-v$version"
           
-          ### 构建信息
-          - **版本**: ${{ github.ref_name }}
-          - **构建时间**: ${{ steps.get_timestamp.outputs.timestamp }}
-          - **提交**: [${{ github.sha }}](https://github.com/${{ github.repository }}/commit/${{ github.sha }})
-        files: ${{ steps.create_package.outputs.package_name }}
-        draft: false
-        prerelease: ${{ contains(github.ref, 'beta') || contains(github.ref, 'alpha') }}
-    - name: Update GitHub Release
-      if: steps.check-release.outputs.release_exists == 'true'
-      uses: actions/upload-release-asset@v1
-      with:
-        upload_url: https://uploads.github.com/repos/${{ github.repository }}/releases/tags/${{ github.ref_name }}/assets{?name,label}
-        asset_path: ${{ steps.build.outputs.package_name }}
-        asset_name: AutoBoss-${{ github.ref_name }}.zip
-        asset_content_type: application/zip
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  
+          # 创建压缩包
+          Compress-Archive -Path "dist\main.exe" -DestinationPath "$packageName.zip" -Force
+          
+          # 验证文件存在
+          if (Test-Path "$packageName.zip") {
+              echo "✅ Package created: $packageName.zip"
+              echo "文件大小: $(Get-Item "$packageName.zip").Length bytes"
+              echo "package_name=$packageName.zip" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          } else {
+              echo "❌ Package creation failed"
+              exit 1
+          }
+
+      - name: Check if release exists
+        id: check-release
+        run: |
+          $TAG = "${{ steps.target-tag.outputs.TAG_NAME }}"
+          echo "检查发布是否存在: $TAG"
+          
+          try {
+            $response = Invoke-RestMethod -Uri "https://api.github.com/repos/${{ github.repository }}/releases/tags/$TAG" -Headers @{
+              Authorization = "token ${{ secrets.GITHUB_TOKEN }}"
+            }
+            echo "发布已存在，ID: $($response.id)"
+            echo "release_exists=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            echo "release_id=$($response.id)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          } catch {
+            if ($_.Exception.Response.StatusCode -eq 404) {
+              echo "发布不存在"
+              echo "release_exists=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            } else {
+              echo "检查发布时出错: $($_.Exception.Message)"
+              echo "release_exists=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            }
+          }
+
+      - name: Create new release
+        if: steps.check-release.outputs.release_exists == 'false'
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.target-tag.outputs.TAG_NAME }}
+          name: Release ${{ steps.target-tag.outputs.TAG_NAME }}
+          body: |
+            # AutoBoss ${{ steps.target-tag.outputs.TAG_NAME }}
+            
+            ## 自动构建版本
+            
+            ### 下载
+            - [AutoBoss-v${{ steps.target-tag.outputs.VERSION }}.zip](AutoBoss-v${{ steps.target-tag.outputs.VERSION }}.zip)
+            
+            ### 构建信息
+            - **版本**: ${{ steps.target-tag.outputs.TAG_NAME }}
+            - **构建时间**: $((Get-Date).ToString("yyyy-MM-dd HH:mm:ss"))
+            - **提交**: [${{ github.sha }}](https://github.com/${{ github.repository }}/commit/${{ github.sha }})
+            - **触发提交**: ${{ github.event.head_commit.message }}
+          files: ${{ steps.create_package.outputs.package_name }}
+          draft: false
+          prerelease: ${{ contains(github.ref, 'beta') || contains(github.ref, 'alpha') }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update existing release
+        if: steps.check-release.outputs.release_exists == 'true'
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: https://uploads.github.com/repos/${{ github.repository }}/releases/${{ steps.check-release.outputs.release_id }}/assets{?name,label}
+          asset_path: ${{ steps.create_package.outputs.package_name }}
+          asset_name: AutoBoss-v${{ steps.target-tag.outputs.VERSION }}.zip
+          asset_content_type: application/zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Success notification
+        run: |
+          echo "🎉 构建和发布完成!"
+          echo "📦 版本: ${{ steps.target-tag.outputs.TAG_NAME }}"
+          echo "📁 包文件: ${{ steps.create_package.outputs.package_name }}"
+          if ("${{ steps.check-release.outputs.release_exists }}" -eq "true") {
+            echo "✅ 已更新现有发布"
+          } else {
+            echo "✅ 已创建新发布"
+          }
