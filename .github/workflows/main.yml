@@ -22,25 +22,25 @@ jobs:
         run: |
           # 获取最新提交信息
           $LATEST_COMMIT_MSG = git log -1 --pretty=%B
-          echo "Latest commit: $LATEST_COMMIT_MSG"
+          Write-Host "Latest commit: $LATEST_COMMIT_MSG"
           
           # 分析提交信息决定版本类型
           if ($LATEST_COMMIT_MSG -match "feat:" -or $LATEST_COMMIT_MSG -match "feature:") {
-            echo "version-type=minor" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-            echo "should-release=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-            echo "✅ 检测到 feat/feature，触发 minor 版本发布"
+            Write-Host "version-type=minor" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            Write-Host "should-release=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            Write-Host "✅ 检测到 feat/feature，触发 minor 版本发布"
           } elseif ($LATEST_COMMIT_MSG -match "fix:" -or $LATEST_COMMIT_MSG -match "bugfix:") {
-            echo "version-type=patch" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-            echo "should-release=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-            echo "✅ 检测到 fix/bugfix，触发 patch 版本发布"
+            Write-Host "version-type=patch" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            Write-Host "should-release=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            Write-Host "✅ 检测到 fix/bugfix，触发 patch 版本发布"
           } elseif ($LATEST_COMMIT_MSG -match "BREAKING CHANGE:" -or $LATEST_COMMIT_MSG -match "major:") {
-            echo "version-type=major" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-            echo "should-release=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-            echo "✅ 检测到 BREAKING CHANGE/major，触发 major 版本发布"
+            Write-Host "version-type=major" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            Write-Host "should-release=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            Write-Host "✅ 检测到 BREAKING CHANGE/major，触发 major 版本发布"
           } else {
-            echo "version-type=skip" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-            echo "should-release=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-            echo "❌ 未检测到触发发布的提交类型，跳过发布"
+            Write-Host "version-type=skip" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            Write-Host "should-release=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            Write-Host "❌ 未检测到触发发布的提交类型，跳过发布"
           }
 
       - name: Get latest version
@@ -48,42 +48,46 @@ jobs:
         run: |
           # 获取最新的tag
           $LATEST_TAG = git describe --tags --abbrev=0 2>$null
-          if (-not $LATEST_TAG) { $LATEST_TAG = "v0.0.0" }
-          echo "Latest tag: $LATEST_TAG"
+          if (-not $LATEST_TAG) { 
+            $LATEST_TAG = "v0.0.0" 
+          }
+          Write-Host "Latest tag: $LATEST_TAG"
           
           # 解析版本号
           if ($LATEST_TAG -match "^v(\d+)\.(\d+)\.(\d+)$") {
             $MAJOR = $Matches[1]
             $MINOR = $Matches[2] 
             $PATCH = $Matches[3]
+            Write-Host "解析版本: v$MAJOR.$MINOR.$PATCH"
           } else {
             $MAJOR = 0
             $MINOR = 0
             $PATCH = 0
+            Write-Host "使用默认版本: v0.0.0"
           }
           
           # 根据分析结果增加版本
           $VERSION_TYPE = "${{ steps.analyze.outputs.version-type }}"
-          echo "Version type: $VERSION_TYPE"
+          Write-Host "Version type: $VERSION_TYPE"
           
           switch ($VERSION_TYPE) {
             "major" {
               $MAJOR = [int]$MAJOR + 1
               $MINOR = 0
               $PATCH = 0
-              echo "🔄 Major 版本升级"
+              Write-Host "🔄 Major 版本升级: v$MAJOR.$MINOR.$PATCH"
             }
             "minor" {
               $MINOR = [int]$MINOR + 1
               $PATCH = 0
-              echo "🔄 Minor 版本升级"
+              Write-Host "🔄 Minor 版本升级: v$MAJOR.$MINOR.$PATCH"
             }
             "patch" {
               $PATCH = [int]$PATCH + 1
-              echo "🔄 Patch 版本升级"
+              Write-Host "🔄 Patch 版本升级: v$MAJOR.$MINOR.$PATCH"
             }
             default {
-              echo "⚪ 跳过版本升级"
+              Write-Host "⚪ 跳过版本升级，使用现有标签: $LATEST_TAG"
               # 使用当前最新tag作为新版本
               $NEW_VERSION = $LATEST_TAG
             }
@@ -92,9 +96,9 @@ jobs:
           if (-not $NEW_VERSION) {
             $NEW_VERSION = "v${MAJOR}.${MINOR}.${PATCH}"
           }
-          echo "NEW_VERSION=$NEW_VERSION" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-          echo "NEW_TAG=$NEW_VERSION" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-          echo "新版本: $NEW_VERSION"
+          Write-Host "NEW_VERSION=$NEW_VERSION" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          Write-Host "NEW_TAG=$NEW_VERSION" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          Write-Host "新版本: $NEW_VERSION"
 
   create-tag:
     needs: analyze-commits
@@ -114,22 +118,22 @@ jobs:
           $TAG = "${{ needs.analyze-commits.outputs.new-tag }}"
           $SHA = "${{ github.sha }}"
           
-          echo "创建标签: $TAG (提交: $SHA)"
+          Write-Host "创建标签: $TAG (提交: $SHA)"
           
           # 检查标签是否已存在
           $existing_tag = git ls-remote --tags origin "refs/tags/$TAG" 2>$null
           if ($existing_tag) {
-            echo "⚠️ 标签 $TAG 已存在，跳过创建"
+            Write-Host "⚠️ 标签 $TAG 已存在，跳过创建"
           } else {
             # 创建并推送标签
             git config user.name "GitHub Actions"
             git config user.email "actions@github.com"
             git tag $TAG $SHA
             git push origin $TAG
-            echo "✅ 标签 $TAG 创建成功"
+            Write-Host "✅ 标签 $TAG 创建成功"
           }
           
-          echo "TAG_NAME=$TAG" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          Write-Host "TAG_NAME=$TAG" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
   build-and-release:
     needs: [analyze-commits, create-tag]
@@ -137,14 +141,14 @@ jobs:
     steps:
       - name: Debug information
         run: |
-          echo "=== 调试信息 ==="
-          echo "触发事件: ${{ github.event_name }}"
-          echo "引用: ${{ github.ref }}"
-          echo "引用名称: ${{ github.ref_name }}"
-          echo "SHA: ${{ github.sha }}"
-          echo "是否需要发布: ${{ needs.analyze-commits.outputs.should-release }}"
-          echo "新标签: ${{ needs.analyze-commits.outputs.new-tag }}"
-          echo "================="
+          Write-Host "=== 调试信息 ==="
+          Write-Host "触发事件: ${{ github.event_name }}"
+          Write-Host "引用: ${{ github.ref }}"
+          Write-Host "引用名称: ${{ github.ref_name }}"
+          Write-Host "SHA: ${{ github.sha }}"
+          Write-Host "是否需要发布: ${{ needs.analyze-commits.outputs.should-release }}"
+          Write-Host "新标签: ${{ needs.analyze-commits.outputs.new-tag }}"
+          Write-Host "================="
 
       - name: Determine target tag
         id: target-tag
@@ -152,15 +156,15 @@ jobs:
           # 决定使用哪个标签
           if ("${{ needs.analyze-commits.outputs.should-release }}" -eq "true") {
             $TAG = "${{ needs.analyze-commits.outputs.new-tag }}"
-            echo "使用新标签: $TAG"
+            Write-Host "使用新标签: $TAG"
           } else {
             # 获取最新的现有标签
             $TAG = git describe --tags --abbrev=0 2>$null
             if (-not $TAG) { 
               $TAG = "v0.0.0" 
-              echo "⚠️ 未找到现有标签，使用默认: $TAG"
+              Write-Host "⚠️ 未找到现有标签，使用默认: $TAG"
             } else {
-              echo "使用现有标签: $TAG"
+              Write-Host "使用现有标签: $TAG"
             }
           }
           
@@ -170,9 +174,9 @@ jobs:
               $VERSION = $VERSION.Substring(1)
           }
           
-          echo "TAG_NAME=$TAG" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-          echo "VERSION=$VERSION" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-          echo "最终版本: $VERSION"
+          Write-Host "TAG_NAME=$TAG" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          Write-Host "VERSION=$VERSION" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          Write-Host "最终版本: $VERSION"
 
       - name: Checkout specific tag
         uses: actions/checkout@v4
@@ -201,39 +205,51 @@ jobs:
           $version = "${{ steps.target-tag.outputs.VERSION }}"
           $packageName = "AutoBoss-v$version"
           
+          Write-Host "创建压缩包: $packageName.zip"
+          
+          # 确保dist目录存在
+          if (-not (Test-Path "dist\main.exe")) {
+            Write-Host "❌ 可执行文件不存在: dist\main.exe"
+            Get-ChildItem -Recurse
+            exit 1
+          }
+          
           # 创建压缩包
           Compress-Archive -Path "dist\main.exe" -DestinationPath "$packageName.zip" -Force
           
           # 验证文件存在
           if (Test-Path "$packageName.zip") {
-              echo "✅ Package created: $packageName.zip"
-              echo "文件大小: $(Get-Item "$packageName.zip").Length bytes"
-              echo "package_name=$packageName.zip" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            Write-Host "✅ Package created: $packageName.zip"
+            $fileSize = (Get-Item "$packageName.zip").Length
+            Write-Host "文件大小: $fileSize bytes"
+            Write-Host "package_name=$packageName.zip" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
           } else {
-              echo "❌ Package creation failed"
-              exit 1
+            Write-Host "❌ Package creation failed"
+            exit 1
           }
 
       - name: Check if release exists
         id: check-release
         run: |
           $TAG = "${{ steps.target-tag.outputs.TAG_NAME }}"
-          echo "检查发布是否存在: $TAG"
+          Write-Host "检查发布是否存在: $TAG"
           
           try {
-            $response = Invoke-RestMethod -Uri "https://api.github.com/repos/${{ github.repository }}/releases/tags/$TAG" -Headers @{
+            $headers = @{
               Authorization = "token ${{ secrets.GITHUB_TOKEN }}"
+              Accept = "application/vnd.github.v3+json"
             }
-            echo "发布已存在，ID: $($response.id)"
-            echo "release_exists=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-            echo "release_id=$($response.id)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            $response = Invoke-RestMethod -Uri "https://api.github.com/repos/${{ github.repository }}/releases/tags/$TAG" -Headers $headers
+            Write-Host "发布已存在，ID: $($response.id)"
+            Write-Host "release_exists=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            Write-Host "release_id=$($response.id)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
           } catch {
             if ($_.Exception.Response.StatusCode -eq 404) {
-              echo "发布不存在"
-              echo "release_exists=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+              Write-Host "发布不存在"
+              Write-Host "release_exists=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
             } else {
-              echo "检查发布时出错: $($_.Exception.Message)"
-              echo "release_exists=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+              Write-Host "检查发布时出错: $($_.Exception.Message)"
+              Write-Host "release_exists=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
             }
           }
 
@@ -275,11 +291,11 @@ jobs:
 
       - name: Success notification
         run: |
-          echo "🎉 构建和发布完成!"
-          echo "📦 版本: ${{ steps.target-tag.outputs.TAG_NAME }}"
-          echo "📁 包文件: ${{ steps.create_package.outputs.package_name }}"
+          Write-Host "🎉 构建和发布完成!"
+          Write-Host "📦 版本: ${{ steps.target-tag.outputs.TAG_NAME }}"
+          Write-Host "📁 包文件: ${{ steps.create_package.outputs.package_name }}"
           if ("${{ steps.check-release.outputs.release_exists }}" -eq "true") {
-            echo "✅ 已更新现有发布"
+            Write-Host "✅ 已更新现有发布"
           } else {
-            echo "✅ 已创建新发布"
+            Write-Host "✅ 已创建新发布"
           }
