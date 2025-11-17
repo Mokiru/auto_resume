@@ -68,6 +68,7 @@ jobs:
         Get-ChildItem *.zip
 
     - name: Create GitHub Release
+      if: steps.check-release.outputs.release_exists == 'false'
       uses: softprops/action-gh-release@v1
       with:
         tag_name: ${{ github.ref_name }}
@@ -87,4 +88,14 @@ jobs:
         files: ${{ steps.create_package.outputs.package_name }}
         draft: false
         prerelease: ${{ contains(github.ref, 'beta') || contains(github.ref, 'alpha') }}
+    - name: Update GitHub Release
+      if: steps.check-release.outputs.release_exists == 'true'
+      uses: actions/upload-release-asset@v1
+      with:
+        upload_url: https://uploads.github.com/repos/${{ github.repository }}/releases/tags/${{ github.ref_name }}/assets{?name,label}
+        asset_path: ${{ steps.build.outputs.package_name }}
+        asset_name: AutoBoss-${{ github.ref_name }}.zip
+        asset_content_type: application/zip
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   
