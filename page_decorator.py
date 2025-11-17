@@ -1,0 +1,71 @@
+import threading
+import time
+
+from base_operates import click_element
+from simple_dialog import show_warning_dialog
+
+
+def _solve_over_say_hello_dialog(page, interrupt_check, stop_event):
+    """
+    处理因为打招呼超出数量出现的弹窗
+    :param page:
+    :return:
+    """
+    while True:
+        _dialog_ele = page.ele(locator=r'xpath:/html/body/div[6]', timeout=5)
+        if not _dialog_ele:
+            continue
+        # 超出限制
+        interrupt_check['interrupt_check'] = True
+        # 点击关闭
+        click_element(page, xpath=r'xpath:/html/body/div[6]/div[1]/div[2]/i')
+        interrupt_check['can_return'] = True
+        break
+
+
+def say_call_dialog_solve(func):
+    def wrapper(*args, **kwargs):
+        page = args[0]  # 获取页面对象
+        interrupt_check = {
+            'interrupt_check': False,
+            'can_return': False
+        }
+        # 处理弹窗
+
+        stop_event = threading.Event()
+        monitor_thread = threading.Thread(target=_solve_over_say_hello_dialog, args=(page, interrupt_check, stop_event),
+                                          daemon=True)
+        monitor_thread.start()
+        try:
+            result = func(*args, **kwargs, interrupt_check=interrupt_check)
+            return result
+        finally:
+            stop_event.set()
+            monitor_thread.join(timeout=2.0)
+
+    return wrapper
+
+
+def check_dialog_popup(page, locator):
+    while True:
+        _error_ele = page.ele(locator=locator, timeout=5)
+        if _error_ele:
+            # 出现验证
+            show_warning_dialog('请处理验证')
+        else:
+            time.sleep(1)
+            continue
+
+
+def popup_when_ele_existed(locator: str):
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            page = args[0]  # 获取标签页
+            monitor_thread = threading.Thread(target=check_dialog_popup, args=(page, locator), daemon=True)
+            monitor_thread.start()
+            result = func(*args, **kwargs)
+            return result
+
+        return wrapper
+
+    return decorator
