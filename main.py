@@ -135,7 +135,7 @@ def passive_resume(page):
                     break
                 index += 1
                 key = list_item_ele.attr('key')
-                if get_resume_key[key]:
+                if key in get_resume_key:
                     print("已获取过该简历")
                     continue
                 try:
