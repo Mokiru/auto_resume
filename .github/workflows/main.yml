@@ -195,13 +195,15 @@ jobs:
           
           echo "创建压缩包: $PACKAGE_NAME.zip"
           
-          if [ -f "dist/main.exe" ]; then
-            zip "$PACKAGE_NAME.zip" dist/main.exe
+          if [ -f "dist/main" ]; then
+            echo "找到Linux可执行文件: dist/main"
+            zip "$PACKAGE_NAME.zip" dist/main
             echo "package_name=$PACKAGE_NAME.zip" >> $GITHUB_OUTPUT
             echo "✅ Package created: $PACKAGE_NAME.zip"
           else
-            echo "❌ 可执行文件不存在: dist/main.exe"
-            ls -la dist/
+            echo "❌ 可执行文件不存在"
+            ls -la dist/ || echo "dist目录不存在"
+            find . -name "main" -type f 2>/dev/null || echo "找不到main可执行文件"
             exit 1
           fi
 
