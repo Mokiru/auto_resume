@@ -6,7 +6,7 @@ on:
 
 jobs:
   analyze-commits:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest  # 使用Linux，避免PowerShell相关问题
     outputs:
       version-type: ${{ steps.analyze.outputs.version-type }}
       should-release: ${{ steps.analyze.outputs.should-release }}
@@ -20,104 +20,93 @@ jobs:
 
       - name: Analyze commits and calculate version
         id: analyze
-        shell: pwsh
         run: |
           # 获取最新提交信息
-          $LATEST_COMMIT_MSG = git log -1 --pretty=%B
-          Write-Host "Latest commit: $LATEST_COMMIT_MSG"
+          LATEST_COMMIT_MSG=$(git log -1 --pretty=%B)
+          echo "Latest commit: $LATEST_COMMIT_MSG"
           
           # 获取最新的tag
-          $LATEST_TAG = git describe --tags --abbrev=0 2>$null
-          if (-not $LATEST_TAG) { 
-            $LATEST_TAG = "v0.0.0" 
-          }
-          Write-Host "Latest tag: $LATEST_TAG"
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          echo "Latest tag: $LATEST_TAG"
           
           # 解析版本号
-          if ($LATEST_TAG -match "^v(\d+)\.(\d+)\.(\d+)$") {
-            $MAJOR = $Matches[1]
-            $MINOR = $Matches[2] 
-            $PATCH = $Matches[3]
-            Write-Host "解析版本: v$MAJOR.$MINOR.$PATCH"
-          } else {
-            $MAJOR = 0
-            $MINOR = 0
-            $PATCH = 0
-            Write-Host "使用默认版本: v0.0.0"
-          }
+          if [[ $LATEST_TAG =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+            MAJOR=${BASH_REMATCH[1]}
+            MINOR=${BASH_REMATCH[2]} 
+            PATCH=${BASH_REMATCH[3]}
+            echo "解析版本: v$MAJOR.$MINOR.$PATCH"
+          else
+            MAJOR=0
+            MINOR=0
+            PATCH=0
+            echo "使用默认版本: v0.0.0"
+          fi
           
           # 分析提交信息决定版本类型
-          $VERSION_TYPE = "skip"
-          $SHOULD_RELEASE = "false"
+          VERSION_TYPE="skip"
+          SHOULD_RELEASE="false"
           
-          if ($LATEST_COMMIT_MSG -match "feat:" -or $LATEST_COMMIT_MSG -match "feature:") {
-            $VERSION_TYPE = "minor"
-            $SHOULD_RELEASE = "true"
-            Write-Host "✅ 检测到 feat/feature，触发 minor 版本发布"
-          } elseif ($LATEST_COMMIT_MSG -match "fix:" -or $LATEST_COMMIT_MSG -match "bugfix:") {
-            $VERSION_TYPE = "patch"
-            $SHOULD_RELEASE = "true"
-            Write-Host "✅ 检测到 fix/bugfix，触发 patch 版本发布"
-          } elseif ($LATEST_COMMIT_MSG -match "BREAKING CHANGE:" -or $LATEST_COMMIT_MSG -match "major:") {
-            $VERSION_TYPE = "major"
-            $SHOULD_RELEASE = "true"
-            Write-Host "✅ 检测到 BREAKING CHANGE/major，触发 major 版本发布"
-          } else {
-            $VERSION_TYPE = "skip"
-            $SHOULD_RELEASE = "false"
-            Write-Host "❌ 未检测到触发发布的提交类型，跳过发布"
-          }
+          if [[ $LATEST_COMMIT_MSG =~ (feat:|feature:) ]]; then
+            VERSION_TYPE="minor"
+            SHOULD_RELEASE="true"
+            echo "✅ 检测到 feat/feature，触发 minor 版本发布"
+          elif [[ $LATEST_COMMIT_MSG =~ (fix:|bugfix:) ]]; then
+            VERSION_TYPE="patch"
+            SHOULD_RELEASE="true"
+            echo "✅ 检测到 fix/bugfix，触发 patch 版本发布"
+          elif [[ $LATEST_COMMIT_MSG =~ (BREAKING\ CHANGE:|major:) ]]; then
+            VERSION_TYPE="major"
+            SHOULD_RELEASE="true"
+            echo "✅ 检测到 BREAKING CHANGE/major，触发 major 版本发布"
+          else
+            VERSION_TYPE="skip"
+            SHOULD_RELEASE="false"
+            echo "❌ 未检测到触发发布的提交类型，跳过发布"
+          fi
           
-          Write-Host "Version type: $VERSION_TYPE"
-          Write-Host "Should release: $SHOULD_RELEASE"
+          echo "Version type: $VERSION_TYPE"
+          echo "Should release: $SHOULD_RELEASE"
           
           # 根据分析结果计算新版本
-          switch ($VERSION_TYPE) {
-            "major" {
-              $MAJOR = [int]$MAJOR + 1
-              $MINOR = 0
-              $PATCH = 0
-              Write-Host "🔄 Major 版本升级: v$MAJOR.$MINOR.$PATCH"
-            }
-            "minor" {
-              $MINOR = [int]$MINOR + 1
-              $PATCH = 0
-              Write-Host "🔄 Minor 版本升级: v$MAJOR.$MINOR.$PATCH"
-            }
-            "patch" {
-              $PATCH = [int]$PATCH + 1
-              Write-Host "🔄 Patch 版本升级: v$MAJOR.$MINOR.$PATCH"
-            }
-            default {
-              Write-Host "⚪ 跳过版本升级，使用现有标签: $LATEST_TAG"
-              # 使用当前最新tag作为新版本
-              $NEW_VERSION = $LATEST_TAG
-            }
-          }
+          case $VERSION_TYPE in
+            "major")
+              MAJOR=$((MAJOR + 1))
+              MINOR=0
+              PATCH=0
+              echo "🔄 Major 版本升级: v$MAJOR.$MINOR.$PATCH"
+              ;;
+            "minor")
+              MINOR=$((MINOR + 1))
+              PATCH=0
+              echo "🔄 Minor 版本升级: v$MAJOR.$MINOR.$PATCH"
+              ;;
+            "patch")
+              PATCH=$((PATCH + 1))
+              echo "🔄 Patch 版本升级: v$MAJOR.$MINOR.$PATCH"
+              ;;
+            *)
+              echo "⚪ 跳过版本升级，使用现有标签: $LATEST_TAG"
+              NEW_VERSION=$LATEST_TAG
+              ;;
+          esac
           
-          if (-not $NEW_VERSION) {
-            $NEW_VERSION = "v${MAJOR}.${MINOR}.${PATCH}"
-          }
+          if [ -z "$NEW_VERSION" ]; then
+            NEW_VERSION="v${MAJOR}.${MINOR}.${PATCH}"
+          fi
           
-          Write-Host "新版本: $NEW_VERSION"
-          
-          # 验证GITHUB_OUTPUT环境变量存在
-          if (-not $env:GITHUB_OUTPUT) {
-            Write-Error "GITHUB_OUTPUT环境变量未设置"
-            exit 1
-          }
+          echo "新版本: $NEW_VERSION"
           
           # 设置输出
-          "version-type=${VERSION_TYPE}" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-          "should-release=${SHOULD_RELEASE}" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-          "new-tag=${NEW_VERSION}" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          echo "version-type=$VERSION_TYPE" >> $GITHUB_OUTPUT
+          echo "should-release=$SHOULD_RELEASE" >> $GITHUB_OUTPUT
+          echo "new-tag=$NEW_VERSION" >> $GITHUB_OUTPUT
           
-          Write-Host "✅ 输出设置完成"
+          echo "✅ 输出设置完成"
 
   create-tag:
     needs: analyze-commits
     if: needs.analyze-commits.outputs.should-release == 'true'
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
@@ -127,89 +116,47 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Debug outputs
-        run: |
-          Write-Host "=== 调试信息 ==="
-          Write-Host "版本类型: ${{ needs.analyze-commits.outputs.version-type }}"
-          Write-Host "是否发布: ${{ needs.analyze-commits.outputs.should-release }}"
-          Write-Host "新标签: ${{ needs.analyze-commits.outputs.new-tag }}"
-          Write-Host "================="
-
       - name: Create Git tag
         run: |
-          $TAG = "${{ needs.analyze-commits.outputs.new-tag }}"
-          $SHA = "${{ github.sha }}"
-          
-          Write-Host "创建标签: $TAG (提交: $SHA)"
+          TAG="${{ needs.analyze-commits.outputs.new-tag }}"
+          echo "创建标签: $TAG"
           
           # 配置Git用户信息
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           
-          # 检查标签是否已存在（本地）
-          $local_tags = git tag --list
-          if ($local_tags -match "^$TAG$") {
-            Write-Host "⚠️ 本地标签 $TAG 已存在，跳过创建"
-          } else {
-            # 创建标签
-            git tag $TAG $SHA
-            Write-Host "✅ 本地标签 $TAG 创建成功"
-          }
-          
-          # 检查标签是否已存在（远程）
-          $remote_tags = git ls-remote --tags origin
-          if ($remote_tags -match "$TAG") {
-            Write-Host "⚠️ 远程标签 $TAG 已存在，跳过推送"
-          } else {
-            # 推送标签到远程
-            git push origin $TAG
-            Write-Host "✅ 远程标签 $TAG 推送成功"
-          }
+          # 创建并推送标签
+          git tag $TAG
+          git push origin $TAG
+          echo "✅ 标签 $TAG 创建成功"
 
   build-and-release:
     needs: [analyze-commits, create-tag]
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     steps:
       - name: Debug information
         run: |
-          Write-Host "=== 构建调试信息 ==="
-          Write-Host "触发事件: ${{ github.event_name }}"
-          Write-Host "引用: ${{ github.ref }}"
-          Write-Host "引用名称: ${{ github.ref_name }}"
-          Write-Host "SHA: ${{ github.sha }}"
-          Write-Host "是否需要发布: ${{ needs.analyze-commits.outputs.should-release }}"
-          Write-Host "版本类型: ${{ needs.analyze-commits.outputs.version-type }}"
-          Write-Host "新标签: ${{ needs.analyze-commits.outputs.new-tag }}"
-          Write-Host "================="
+          echo "=== 构建调试信息 ==="
+          echo "是否需要发布: ${{ needs.analyze-commits.outputs.should-release }}"
+          echo "版本类型: ${{ needs.analyze-commits.outputs.version-type }}"
+          echo "新标签: ${{ needs.analyze-commits.outputs.new-tag }}"
+          echo "================="
 
       - name: Determine target tag
         id: target-tag
-        shell: pwsh
         run: |
-          # 决定使用哪个标签
-          if ("${{ needs.analyze-commits.outputs.should-release }}" -eq "true") {
-            $TAG = "${{ needs.analyze-commits.outputs.new-tag }}"
-            Write-Host "使用新标签: $TAG"
-          } else {
-            # 获取最新的现有标签
-            $TAG = git describe --tags --abbrev=0 2>$null
-            if (-not $TAG) { 
-              $TAG = "v0.0.0" 
-              Write-Host "⚠️ 未找到现有标签，使用默认: $TAG"
-            } else {
-              Write-Host "使用现有标签: $TAG"
-            }
-          }
+          if [ "${{ needs.analyze-commits.outputs.should-release }}" = "true" ]; then
+            TAG="${{ needs.analyze-commits.outputs.new-tag }}"
+          else
+            TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          fi
           
           # 清理版本号（移除开头的v）
-          $VERSION = $TAG
-          if ($VERSION.StartsWith('v')) {
-              $VERSION = $VERSION.Substring(1)
-          }
+          VERSION=${TAG#v}
           
-          "TAG_NAME=$TAG" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-          "VERSION=$VERSION" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-          Write-Host "最终版本: $VERSION"
+          echo "TAG_NAME=$TAG" >> $GITHUB_OUTPUT
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "最终版本: $VERSION"
 
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -220,99 +167,47 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: '3.9'
 
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          if (Test-Path "requirements.txt") {
+          if [ -f "requirements.txt" ]; then
             pip install -r requirements.txt
-          }
+          fi
           pip install pyinstaller
 
       - name: Build executable
         run: |
-          if (Test-Path "main.py") {
+          if [ -f "main.py" ]; then
             pyinstaller --onefile main.py
-          } else {
-            Write-Host "❌ main.py 文件不存在"
-            Get-ChildItem -Recurse
+          else
+            echo "❌ main.py 文件不存在"
+            ls -la
             exit 1
-          }
+          fi
 
       - name: Create ZIP package
         id: create_package
-        shell: pwsh
         run: |
-          $version = "${{ steps.target-tag.outputs.VERSION }}"
-          $packageName = "AutoBoss-v$version"
+          VERSION="${{ steps.target-tag.outputs.VERSION }}"
+          PACKAGE_NAME="AutoBoss-v$VERSION"
           
-          Write-Host "创建压缩包: $packageName.zip"
+          echo "创建压缩包: $PACKAGE_NAME.zip"
           
-          # 检查dist目录和可执行文件
-          if (-not (Test-Path "dist")) {
-            Write-Host "❌ dist目录不存在"
-            Get-ChildItem -Recurse
+          if [ -f "dist/main.exe" ]; then
+            zip "$PACKAGE_NAME.zip" dist/main.exe
+            echo "package_name=$PACKAGE_NAME.zip" >> $GITHUB_OUTPUT
+            echo "✅ Package created: $PACKAGE_NAME.zip"
+          else
+            echo "❌ 可执行文件不存在: dist/main.exe"
+            ls -la dist/
             exit 1
-          }
-          
-          $exeFiles = Get-ChildItem "dist" -Filter "*.exe"
-          if ($exeFiles.Count -eq 0) {
-            Write-Host "❌ dist目录中没有找到exe文件"
-            Get-ChildItem "dist" -Recurse
-            exit 1
-          }
-          
-          $exeFile = $exeFiles[0]
-          Write-Host "找到可执行文件: $($exeFile.Name)"
-          
-          # 创建包含可执行文件的临时目录
-          New-Item -ItemType Directory -Path "temp_package" -Force
-          Copy-Item $exeFile.FullName "temp_package\AutoBoss.exe"
-          
-          # 创建压缩包
-          Compress-Archive -Path "temp_package\*" -DestinationPath "$packageName.zip" -Force
-          
-          # 验证文件存在
-          if (Test-Path "$packageName.zip") {
-            Write-Host "✅ Package created: $packageName.zip"
-            $fileSize = (Get-Item "$packageName.zip").Length
-            Write-Host "文件大小: $fileSize bytes"
-            "package_name=$packageName.zip" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-          } else {
-            Write-Host "❌ Package creation failed"
-            exit 1
-          }
+          fi
 
-      - name: Check if release exists
-        id: check-release
-        shell: pwsh
-        run: |
-          $TAG = "${{ steps.target-tag.outputs.TAG_NAME }}"
-          Write-Host "检查发布是否存在: $TAG"
-          
-          try {
-            $headers = @{
-              Authorization = "token ${{ secrets.GITHUB_TOKEN }}"
-              Accept = "application/vnd.github.v3+json"
-            }
-            $response = Invoke-RestMethod -Uri "https://api.github.com/repos/${{ github.repository }}/releases/tags/$TAG" -Headers $headers
-            Write-Host "发布已存在，ID: $($response.id)"
-            "release_exists=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-            "release_id=$($response.id)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-          } catch {
-            if ($_.Exception.Response.StatusCode.value__ -eq 404) {
-              Write-Host "发布不存在"
-              "release_exists=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-            } else {
-              Write-Host "检查发布时出错: $($_.Exception.Message)"
-              "release_exists=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-            }
-          }
-
-      - name: Create new release
-        if: steps.check-release.outputs.release_exists == 'false'
+      - name: Create Release
         uses: softprops/action-gh-release@v2
+        if: needs.analyze-commits.outputs.should-release == 'true'
         with:
           tag_name: ${{ steps.target-tag.outputs.TAG_NAME }}
           name: Release ${{ steps.target-tag.outputs.TAG_NAME }}
@@ -323,33 +218,16 @@ jobs:
             
             ### 构建信息
             - **版本**: ${{ steps.target-tag.outputs.TAG_NAME }}
-            - **构建时间**: ${{ github.event.created_at }}
-            - **提交**: [${{ github.sha }}](https://github.com/${{ github.repository }}/commit/${{ github.sha }})
+            - **构建时间**: $(date -Iseconds)
+            - **提交**: ${{ github.sha }}
             - **触发提交**: ${{ github.event.head_commit.message }}
           files: ${{ steps.create_package.outputs.package_name }}
           draft: false
-          prerelease: ${{ contains(github.ref, 'beta') || contains(github.ref, 'alpha') }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload to existing release
-        if: steps.check-release.outputs.release_exists == 'true'
-        uses: actions/upload-release-asset@v1
-        with:
-          upload_url: https://uploads.github.com/repos/${{ github.repository }}/releases/${{ steps.check-release.outputs.release_id }}/assets{?name,label}
-          asset_path: ${{ steps.create_package.outputs.package_name }}
-          asset_name: ${{ steps.create_package.outputs.package_name }}
-          asset_content_type: application/zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Success notification
         run: |
-          Write-Host "🎉 构建和发布完成!"
-          Write-Host "📦 版本: ${{ steps.target-tag.outputs.TAG_NAME }}"
-          Write-Host "📁 包文件: ${{ steps.create_package.outputs.package_name }}"
-          if ("${{ steps.check-release.outputs.release_exists }}" -eq "true") {
-            Write-Host "✅ 已更新现有发布"
-          } else {
-            Write-Host "✅ 已创建新发布"
-          }
+          echo "🎉 构建和发布完成!"
+          echo "📦 版本: ${{ steps.target-tag.outputs.TAG_NAME }}"
+          echo "📁 包文件: ${{ steps.create_package.outputs.package_name }}"
