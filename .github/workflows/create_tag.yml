@@ -112,30 +112,3 @@ jobs:
               throw error;
             }
           }
-
-    - name: Generate changelog
-      id: changelog
-      run: |
-        # 生成变更日志
-        PREV_TAG=$(git describe --tags --abbrev=0 HEAD~1 2>/dev/null || echo "")
-        if [ -z "$PREV_TAG" ]; then
-          CHANGES=$(git log --oneline --format="- %s" HEAD)
-        else
-          CHANGES=$(git log --oneline --format="- %s" ${PREV_TAG}..HEAD)
-        fi
-        
-        # 保存到文件
-        echo "$CHANGES" > CHANGELOG.md
-        cat CHANGELOG.md
-
-    - name: Create Release
-      uses: softprops/action-gh-release@v1
-      with:
-        tag_name: ${{ steps.versions.outputs.NEW_TAG }}
-        name: Release ${{ steps.versions.outputs.NEW_VERSION }}
-        body_path: CHANGELOG.md
-        draft: false
-        prerelease: false
-        generate_release_notes: true
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
