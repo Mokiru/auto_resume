@@ -2,14 +2,13 @@ import os
 import random
 import time
 import traceback
-from datetime import time as dt_time
 
 from DrissionPage.errors import ElementNotFoundError
 
 from base_operates import click_element, click_element_by_ele, open_browser
 from operate_extensions import if_not_selected_click
 from page_decorator import say_call_dialog_solve, popup_when_ele_existed
-from simple_dialog import popup_input
+from simple_dialog import popup_input, popup_multiple_inputs
 from timer_function_decorator import deadline_decorator
 
 CAPTCHA_PAGE_LOCATOR = '@text()=您的账号可能存在异常访问行为'
@@ -265,15 +264,13 @@ def do_chain(page, _job_input: str, _filter_input: str):
     passive_resume(page)  # 第三步 处理新招呼 求简历
 
 
-@deadline_decorator(dt_time(20, 0, 0))
-def run():
+@deadline_decorator
+def run(_job_input: str, _filter_input: str, _deadline_time: str):
     try:
         browser = open_browser()
     except FileNotFoundError:
         print("未找到浏览器路径，手动指定")
         browser = open_browser(popup_input("请输入浏览器路径"))
-    _job_input = popup_input('请输入职位名称,多个职位使用;(英文输入法)分隔')
-    _filter_input = popup_input('请输入职位筛选条件,多个条件使用;(英文输入法)分隔')
     page = browser.latest_tab  # 获取最新标签页
     page.get('https://www.zhipin.com/web/chat/recommend')  # 前往推荐牛人
     # 等待登录
@@ -292,7 +289,10 @@ def run():
 
 if __name__ == '__main__':
     try:
-        run()
+        _job_input, _filter_input, _deadline_time = popup_multiple_inputs(
+            ["请输入职位名称,多个职位使用;(英文输入法)分隔", "请输入职位筛选条件,多个条件使用;(英文输入法)分隔",
+             "自动终止时间(24小时制),不填默认20:00:00"])
+        run(_job_input, _filter_input, _deadline_time)
     except Exception as e:
         # 打印异常到控制台
         traceback.print_exc()
