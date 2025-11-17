@@ -4,13 +4,20 @@ import time
 import traceback
 import tkinter as tk
 from tkinter import simpledialog
+from datetime import time as dt_time
 
 from DrissionPage.errors import ElementNotFoundError
 
 from base_operates import click_element, click_element_by_ele, open_browser
 from operate_extensions import if_not_selected_click
+from timer_function_decorator import deadline_decorator
 
-COMMUNICATION_MESSAGE_CHAT_XPATH = r'xpath://*[@id="container"]/div[1]/div/div[2]/div[2]/div[2]/div[1]/div[1]/div[2]/div[2]'
+MAIN_PAGE_AWESOME_PERSON_XPATH = r'xpath://*[@id="wrap"]/div[1]/div/dl[2]' #
+MAIN_PAGE_AWESOME_PERSON_SEARCH_LABEL_XPATH = r'xpath://*[@id="headerWrap"]/div/div/div[2]'
+MAIN_PAGE_AWESOME_PERSON_JOB_SEARCH_XPATH = r'xpath://*[@id="headerWrap"]/div/div/div[2]/div[2]/div[1]/input'
+MAIN_PAGE_AWESOME_PERSON_JOB_LIST_FIRST_XPATH = r'xpath://*[@id="headerWrap"]/div/div/div[2]/div[2]/ul/li[1]'
+MAIN_PAGE_AWESOME_PERSON_LIST_XPATH = r'xpath://*[@id="recommend-list"]/div/ul'
+MAIN_PAGE_COMMUNICATION_MESSAGE_CHAT_XPATH = r'xpath://*[@id="container"]/div[1]/div/div[2]/div[2]/div[2]/div[1]/div[1]/div[2]/div[2]'
 
 
 def check_unread(ele) -> bool:
@@ -60,7 +67,7 @@ def proactive_resume(page):
                     click_element_by_ele(page, list_item_ele)
                     get_resume_key[key] = True
                     chat_message_ele = page.s_ele(
-                        COMMUNICATION_MESSAGE_CHAT_XPATH,
+                        MAIN_PAGE_COMMUNICATION_MESSAGE_CHAT_XPATH,
                         timeout=5)  # 获取消息框元素
                     # if chat_message_ele.ele(locator='@class=message-dialog-icon resume-icon'):
                     if chat_message_ele.ele(locator='@text()=点击预览附件简历'):
@@ -76,7 +83,8 @@ def proactive_resume(page):
                     if can_confirm[1]:
                         # 点击同意，接收简历
                         print('点击同意，接收简历')
-                        _confirm_message = page.ele(locator=COMMUNICATION_MESSAGE_CHAT_XPATH, timeout=5).child(index=can_confirm[0])
+                        _confirm_message = page.ele(locator=MAIN_PAGE_COMMUNICATION_MESSAGE_CHAT_XPATH,
+                                                    timeout=5).child(index=can_confirm[0])
                         _confirm_btn = _confirm_message.ele(locator='@@class=card-btn@@text()=同意')
                         click_element_by_ele(page, _confirm_btn)
                         continue
@@ -142,7 +150,7 @@ def passive_resume(page):
                     click_element_by_ele(page, list_item_ele)
                     get_resume_key[key] = True
                     chat_message_ele = page.s_ele(
-                        COMMUNICATION_MESSAGE_CHAT_XPATH,
+                        MAIN_PAGE_COMMUNICATION_MESSAGE_CHAT_XPATH,
                         timeout=5)  # 获取消息框元素
                     resum_icon_ele = chat_message_ele.ele(locator='@class=message-dialog-icon resume-icon')
                     if resum_icon_ele:
@@ -156,9 +164,28 @@ def passive_resume(page):
                     click_element(page,
                                   r'xpath://*[@id="container"]/div[1]/div/div[2]/div[2]/div[2]/div[1]/div[3]/div[1]/div[2]/div[1]/div[1]/div/div/span[2]')  # 确认
                     print("求简历")
-                except ElementNotFoundError:
+                except Exception:
                     get_resume_key[key] = False
                     continue
+
+
+def say_hello(page):
+    """
+    打招呼
+    :param page:
+    :return:
+    """
+    _job_list = popup_input('请输入牛人职位,多个职位使用;(英文输入法)分隔').split(';')
+    wait_for_ele(page=page, xpath=MAIN_PAGE_AWESOME_PERSON_XPATH, funcs=[click_element_by_ele])  # 点击推荐牛人
+    for _job_txt in _job_list:
+        click_element(page=page, xpath=MAIN_PAGE_AWESOME_PERSON_SEARCH_LABEL_XPATH) # 点击职位筛选框
+        click_element(page=page, xpath=MAIN_PAGE_AWESOME_PERSON_JOB_SEARCH_XPATH) # 点击搜索输入框
+        page.actions.type(_job_txt)
+        click_element(page=page, xpath=MAIN_PAGE_AWESOME_PERSON_JOB_LIST_FIRST_XPATH) # 点击搜索结果的职位
+        time.sleep(random.uniform(1.5, 2.0)) # 等待搜索结果
+
+
+
 
 
 def popup_input(prompt: str = "请输入值") -> str | None:
@@ -173,6 +200,7 @@ def popup_input(prompt: str = "请输入值") -> str | None:
     return user_input
 
 
+@deadline_decorator(dt_time(20, 0, 0))
 def run():
     try:
         browser = open_browser()
@@ -195,8 +223,9 @@ def run():
     # 进入主界面
     page.get('https://www.zhipin.com/web/chat/index')
     click_element(page, r'xpath://*[@id="wrap"]/div[1]/div/dl[4]/dt/a')  # 点击沟通
-    proactive_resume(page)  # 第一步 收取主动打招呼的简历
-    passive_resume(page)  # 第二步处理新招呼 求简历
+    # say_hello(page)  # 第一步 打招呼
+    proactive_resume(page)  # 第二步 收取主动打招呼的简历
+    passive_resume(page)  # 第三步 处理新招呼 求简历
 
 
 if __name__ == '__main__':
