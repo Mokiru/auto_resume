@@ -38,6 +38,9 @@ jobs:
           echo "version-type=skip" >> $GITHUB_OUTPUT
           echo "should-release=false" >> $GITHUB_OUTPUT
         fi
+        
+        echo "version-type: ${{ steps.analyze.outputs.version-type }}"
+        echo "should-release: ${{ steps.analyze.outputs.should-release }}"
 
   create-release:
     needs: analyze-commits
