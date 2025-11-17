@@ -37,8 +37,7 @@ jobs:
             $MINOR = $Matches[2] 
             $PATCH = $Matches[3]
             Write-Host "解析版本: v$MAJOR.$MINOR.$PATCH"
-          } else {
-            $MAJOR = 0
+          } elseJOR = 0
             $MINOR = 0
             $PATCH = 0
             Write-Host "使用默认版本: v0.0.0"
@@ -99,10 +98,12 @@ jobs:
           
           Write-Host "新版本: $NEW_VERSION"
           
-          # 设置输出
-          Write-Host "version-type=$VERSION_TYPE" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-          Write-Host "should-release=$SHOULD_RELEASE" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-          Write-Host "new-tag=$NEW_VERSION" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          # 正确设置多个输出
+          Write-Output "version-type=$VERSION_TYPE" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          Write-Output "should-release=$SHOULD_RELEASE" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          Write-Output "new-tag=$NEW_VERSION" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          
+          Write-Host "✅ 输出设置完成"
 
   create-tag:
     needs: analyze-commits
