@@ -149,13 +149,13 @@ jobs:
         id: target-tag
         run: |
           if ( "${{ needs.analyze-commits.outputs.should-release }}" -eq "true" ) {
-            TAG="${{ needs.analyze-commits.outputs.new-tag }}"
+            $TAG="${{ needs.analyze-commits.outputs.new-tag }}"
           } else {
-            TAG=$(git describe --tags --abbrev=0 2>$null || echo "v0.0.0")
+            $TAG=$(git describe --tags --abbrev=0 2>$null || echo "v0.0.0")
           }
           
           # 清理版本号（移除开头的v）
-          VERSION=$TAG -replace '^v', ''
+          $VERSION=$TAG -replace '^v', ''
           
           echo "TAG_NAME=$TAG" >> $GITHUB_OUTPUT
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
