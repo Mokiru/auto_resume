@@ -367,7 +367,7 @@ def do_chain(page):
             {'type': 'multiselect', 'title': '选择职位', 'choices': _position_list},
             {'type': 'multiselect', 'title': '选择筛选条件', 'choices': _filter_list},
             {'type': 'input', 'title': '期望职位'},
-        ], '下一步', '取消当前输入并停止执行')
+        ], '下一步', '停止选择')
         if not result:
             print("取消")
             break
