@@ -55,7 +55,7 @@ def proactive_resume(page):
     :return:
     """
     while True:
-        wait_for_ele(page=page, xpath=r'xpath://*[@id="container"]/div[1]/div/div[2]/div[1]/div/div/div/div[7]',
+        wait_for_ele(page=page, xpath=r'xpath://*[@id="container"]/div[1]/div/div[2]/div[1]/div/div/div/div[3]',
                      funcs=[if_not_selected_click])  # 点击我发起
         while True:
             wait_for_ele(page=page,
@@ -215,9 +215,11 @@ def say_hello(page, person_input: list[int], job_input: list[list[str]], filter_
                 click_element(page=page, xpath=MAIN_PAGE_AWESOME_PERSON_JOB_LIST_FIRST_XPATH)  # 点击搜索结果的职位
                 if len(filter_input[i]) > 0 and filter_input[i][0] != '':
                     click_element(page=page, xpath=MAIN_PAGE_AWESOME_PERSON_FILTER_LABEL_XPATH)  # 点击筛选条件框
-                    _filter_wrap_ele = page.ele(locator=MAIN_PAGE_AWESOME_PERSON_FILTER_WRAP_XPATH, timeout=5)  # 获取筛选界面容器元素
+                    _filter_wrap_ele = page.ele(locator=MAIN_PAGE_AWESOME_PERSON_FILTER_WRAP_XPATH,
+                                                timeout=5)  # 获取筛选界面容器元素
                     for _filter in filter_input[i]:
-                        click_element_by_ele(page, _filter_wrap_ele.ele(locator='@text()={0}'.format(_filter)))  # 点击筛选条件
+                        click_element_by_ele(page,
+                                             _filter_wrap_ele.ele(locator='@text()={0}'.format(_filter)))  # 点击筛选条件
                     click_element(page=page, xpath=MAIN_PAGE_AWESOME_PERSON_FILTER_WRAP_CONFIRM_XPATH)  # 点击确认
                     time.sleep(random.uniform(1.5, 2.0))  # 等待搜索结果
                 index = 1  # 从列表开始
@@ -265,8 +267,9 @@ def say_hello(page, person_input: list[int], job_input: list[list[str]], filter_
                     try:
                         click_element_by_ele(page, _say_hello_ele)  # 点击打招呼
                         person_num -= 1
+                        print('{0}职位已打招呼{1}人'.format(_job_txt, person_input[i] - person_num))
                         if person_num <= 0:
-                            print('当前职位打招呼结束{0}'.format(_job_txt))
+                            print('{0}职位打招呼结束'.format(_job_txt))
                             break
                     except Exception:
                         print("打招呼失败")
