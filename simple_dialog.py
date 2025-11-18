@@ -7,10 +7,44 @@ _gui_queue = queue.Queue()
 root = None
 
 
+class SingleInputDialog(simpledialog.Dialog):
+    def __init__(self, parent, title, ok_text='确定', cancel_text='取消'):
+        self.entry = None
+        self._title = title
+        self.ok_text = ok_text
+        self.cancel_text = cancel_text
+        super().__init__(parent, title='输入')
+
+    def body(self, master):
+        tk.Label(master, text=self._title).pack()
+        self.entry = tk.Entry(master)
+        self.entry.pack()
+        return self.entry
+
+    def buttonbox(self):
+        """创建自定义文本的按钮"""
+        box = tk.Frame(self)
+
+        w = tk.Button(box, text=self.ok_text, width=10, command=self.ok, default=tk.ACTIVE)
+        w.pack(side=tk.LEFT, padx=5, pady=5)
+        w = tk.Button(box, text=self.cancel_text, width=10, command=self.cancel)
+        w.pack(side=tk.LEFT, padx=5, pady=5)
+
+        self.bind("<Return>", self.ok)
+        self.bind("<Escape>", self.cancel)
+
+        box.pack()
+
+    def apply(self):
+        self.result = self.entry.get()
+
+
 class MultiInputDialog(simpledialog.Dialog):
-    def __init__(self, parent, titles):
+    def __init__(self, parent, titles, ok_text='确定', cancel_text='取消'):
         self.titles = titles  # 输入框标题列表
         self.entries = []
+        self.ok_text = ok_text
+        self.cancel_text = cancel_text
         super().__init__(parent, title="多输入框")
 
     def body(self, master):
@@ -20,6 +54,20 @@ class MultiInputDialog(simpledialog.Dialog):
             entry.grid(row=i, column=1)
             self.entries.append(entry)
         return self.entries[0]  # 初始焦点设在第一个输入框
+
+    def buttonbox(self):
+        """创建自定义文本的按钮"""
+        box = tk.Frame(self)
+
+        w = tk.Button(box, text=self.ok_text, width=10, command=self.ok, default=tk.ACTIVE)
+        w.pack(side=tk.LEFT, padx=5, pady=5)
+        w = tk.Button(box, text=self.cancel_text, width=10, command=self.cancel)
+        w.pack(side=tk.LEFT, padx=5, pady=5)
+
+        self.bind("<Return>", self.ok)
+        self.bind("<Escape>", self.cancel)
+
+        box.pack()
 
     def apply(self):
         self.result = [entry.get() for entry in self.entries]
@@ -58,7 +106,7 @@ class MultiSelectDialog(simpledialog.Dialog):
 
 
 class MixedInputDialog(simpledialog.Dialog):
-    def __init__(self, parent, config_list):
+    def __init__(self, parent, config_list, ok_text="确定", cancel_text="取消"):
         """
         config_list: 包含配置字典的列表，每个字典定义一个控件
         字典格式:
@@ -67,6 +115,8 @@ class MixedInputDialog(simpledialog.Dialog):
         """
         self.config_list = config_list
         self.controls = []
+        self.ok_text = ok_text
+        self.cancel_text = cancel_text
         super().__init__(parent, title="混合输入对话框")
 
     def body(self, master):
@@ -90,6 +140,20 @@ class MixedInputDialog(simpledialog.Dialog):
             master.columnconfigure(1, weight=1)
 
         return self.controls[0] if self.controls else None
+
+    def buttonbox(self):
+        """创建自定义文本的按钮"""
+        box = tk.Frame(self)
+
+        w = tk.Button(box, text=self.ok_text, width=10, command=self.ok, default=tk.ACTIVE)
+        w.pack(side=tk.LEFT, padx=5, pady=5)
+        w = tk.Button(box, text=self.cancel_text, width=10, command=self.cancel)
+        w.pack(side=tk.LEFT, padx=5, pady=5)
+
+        self.bind("<Return>", self.ok)
+        self.bind("<Escape>", self.cancel)
+
+        box.pack()
 
     def apply(self):
         self.result = []
@@ -139,8 +203,8 @@ def popup_multiple_multiselect(titles: list[str], choices_list: list[list[str]])
 
 def popup_input(prompt: str = "请输入值") -> str | None:
     """弹出输入框，返回字符串或 None（点取消）"""
-    user_input = simpledialog.askstring("输入", prompt, parent=root)
-    return user_input
+    user_input = SingleInputDialog(root, prompt)
+    return user_input.result if hasattr(user_input, 'result') else None
 
 
 def show_warning_dialog(message: str, title: str = "警告"):
@@ -191,13 +255,14 @@ def safe_gui_call(func, *args, **kwargs):
         return result
 
 
-def popup_mixed_inputs(config_list: list[dict]) -> list[str] | None:
+def popup_mixed_inputs(config_list: list[dict], ok_text: str = "确定", cancel_text: str = "取消") -> list[str] | None:
     """
     弹出包含多种类型控件的对话框
 
     Args:
         config_list: 控件配置列表
-
+        ok_text:
+        cancel_text
     Returns:
         list[str] | None: 用户输入或选择的结果列表
 
@@ -208,5 +273,5 @@ def popup_mixed_inputs(config_list: list[dict]) -> list[str] | None:
         ])
     >>> print(result)
     """
-    dialog = MixedInputDialog(root, config_list)
+    dialog = MixedInputDialog(root, config_list, ok_text, cancel_text)
     return dialog.result if hasattr(dialog, 'result') else None
