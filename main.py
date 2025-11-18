@@ -3,13 +3,14 @@ import random
 import time
 import traceback
 import re
+import threading
 
 from DrissionPage.errors import ElementNotFoundError
 
 from base_operates import click_element, click_element_by_ele, open_browser, browser_mouse_move
 from operate_extensions import if_not_selected_click
 from page_decorator import say_call_dialog_solve, popup_when_ele_existed
-from simple_dialog import popup_input, popup_multiple_multiselect, get_global_root, popup_mixed_inputs
+from simple_dialog import popup_input, popup_multiple_multiselect, get_global_root, popup_mixed_inputs, safe_gui_call
 from timer_function_decorator import deadline_decorator
 
 CAPTCHA_PAGE_LOCATOR = '@text()=您的账号可能存在异常访问行为'
@@ -342,7 +343,7 @@ def do_chain(page):
     _filter_list = get_filter_list(page)
     _person_input, _job_input, _filter_input = [], [], []
     while True:
-        result = popup_mixed_inputs([
+        result = safe_gui_call(popup_mixed_inputs, [
             {'type': 'input', 'title': '打招呼人数'},
             {'type': 'multiselect', 'title': '选择职位', 'choices': _position_list},
             {'type': 'multiselect', 'title': '选择筛选条件', 'choices': _filter_list}
@@ -371,7 +372,7 @@ def run(_deadline_time: str):
         browser = open_browser()
     except FileNotFoundError:
         print("未找到浏览器路径，手动指定")
-        browser = open_browser(popup_input("请输入浏览器路径"))
+        browser = open_browser(safe_gui_call(popup_input, '请输入浏览器路径'))
     page = browser.latest_tab  # 获取最新标签页
     page.get('https://www.zhipin.com/web/chat/recommend')  # 前往推荐牛人
     # 等待登录
@@ -389,14 +390,16 @@ def run(_deadline_time: str):
 
 
 def prepare_run():
-    _deadline_time = popup_input('自动终止时间(24小时制),不填默认20:00:00')
+    _deadline_time = safe_gui_call(popup_input, '自动终止时间(24小时制),不填默认20:00:00')
     run(_deadline_time)
 
 
 if __name__ == '__main__':
     try:
         root = get_global_root()
-        prepare_run()
+        main_thread = threading.Thread(target=prepare_run, daemon=True)
+        main_thread.start()
+        root.mainloop()
     except Exception as e:
         # 打印异常到控制台
         traceback.print_exc()
