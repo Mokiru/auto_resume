@@ -175,20 +175,20 @@ jobs:
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          if [ -f "requirements.txt" ]; then
+          if (Test-Path "requirements.txt" ) {
             pip install -r requirements.txt
-          fi
+          }
           pip install pyinstaller
 
       - name: Build executable
         run: |
-          if [ -f "main.py" ]; then
+          if (Test-Path "main.py" ) {
             pyinstaller --onefile main.py
-          else
-            echo "❌ main.py 文件不存在"
-            ls -la
+          } else {
+            Write-Error "❌ main.py 文件不存在"
+            Get-ChildItem
             exit 1
-          fi
+          }
 
       - name: Create ZIP package
         id: create_package
@@ -196,19 +196,19 @@ jobs:
           VERSION="${{ steps.target-tag.outputs.VERSION }}"
           PACKAGE_NAME="AutoBoss-v$VERSION"
           
-          echo "创建压缩包: $PACKAGE_NAME.zip"
+          Write-Host "创建压缩包: $PACKAGE_NAME.zip"
           
-          if [ -f "dist/main.exe" ]; then
-            echo "找到Windows可执行文件: dist/main.exe"
-            zip "$PACKAGE_NAME.zip" dist/main.exe
-            echo "package_name=$PACKAGE_NAME.zip" >> $GITHUB_OUTPUT
-            echo "✅ Package created: $PACKAGE_NAME.zip"
-          else
-            echo "❌ 可执行文件不存在"
-            ls -la dist/ || echo "dist目录不存在"
-            find . -name "main" -type f 2>/dev/null || echo "找不到main可执行文件"
+          if (Test-Path "dist/main.exe" ) {
+            Write-Host "找到Windows可执行文件: dist/main.exe"
+            Compress-Archive -Path "dist/main.exe" -DestinationPath "$PACKAGE_NAME.zip"
+            echo "package_name=$PACKAGE_NAME.zip" >> $env:GITHUB_OUTPUT
+            Write-Host "✅ Package created: $PACKAGE_NAME.zip"
+          } else {
+            Write-Error "❌ 可执行文件不存在"
+            Get-ChildItem -Path "dist/" -ErrorAction SilentlyContinue
+            Get-ChildItem -Recurse -Filter "main*" -ErrorAction SilentlyContinue
             exit 1
-          fi
+          }
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
