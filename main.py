@@ -9,7 +9,7 @@ from DrissionPage.errors import ElementNotFoundError
 from base_operates import click_element, click_element_by_ele, open_browser, browser_mouse_move
 from operate_extensions import if_not_selected_click
 from page_decorator import say_call_dialog_solve, popup_when_ele_existed
-from simple_dialog import popup_input, popup_multiple_multiselect, get_global_root
+from simple_dialog import popup_input, popup_multiple_multiselect, get_global_root, popup_mixed_inputs
 from timer_function_decorator import deadline_decorator
 
 CAPTCHA_PAGE_LOCATOR = '@text()=您的账号可能存在异常访问行为'
@@ -190,68 +190,74 @@ def passive_resume(page):
 
 
 @say_call_dialog_solve
-def say_hello(page, job_input: str, filter_input: str, interrupt_check=None):
+def say_hello(page, person_input: list[int], job_input: list[list[str]], filter_input: list[list[str]],
+              interrupt_check=None):
     """
     打招呼
     :param page:
-    :param job_input: 示例 产品经理-26届校招(J15116) _ 北京  10-15K
+    :param person_input: 打招呼人数
+    :param job_input: 示例 ['产品经理-26届校招(J15116) _ 北京  10-15K']
     :param filter_input:
     :param interrupt_check: 中断标识
     :return:
     """
-    _job_list = job_input.split(';') if job_input != '' else []
-    _filter_list = filter_input.split(';') if filter_input != '' else []  # 筛选条件
     wait_for_ele(page=page, xpath=MAIN_PAGE_AWESOME_PERSON_XPATH, funcs=[click_element_by_ele])  # 点击推荐牛人
-    for _job_txt in _job_list:
-        try:
-            click_element(page=page, xpath=MAIN_PAGE_AWESOME_PERSON_SEARCH_LABEL_XPATH)  # 点击职位筛选框
-            click_element(page=page, xpath=MAIN_PAGE_AWESOME_PERSON_JOB_SEARCH_XPATH)  # 点击搜索输入框
-            page.actions.type(_job_txt)
-            click_element(page=page, xpath=MAIN_PAGE_AWESOME_PERSON_JOB_LIST_FIRST_XPATH)  # 点击搜索结果的职位
-            click_element(page=page, xpath=MAIN_PAGE_AWESOME_PERSON_FILTER_LABEL_XPATH)  # 点击筛选条件框
-            _filter_wrap_ele = page.ele(locator=MAIN_PAGE_AWESOME_PERSON_FILTER_WRAP_XPATH, timeout=5)  # 获取筛选界面容器元素
-            for _filter in _filter_list:
-                click_element_by_ele(page, _filter_wrap_ele.ele(locator='@text()={0}'.format(_filter)))  # 点击筛选条件
-            click_element(page=page, xpath=MAIN_PAGE_AWESOME_PERSON_FILTER_WRAP_CONFIRM_XPATH)  # 点击确认
-            time.sleep(random.uniform(1.5, 2.0))  # 等待搜索结果
-            index = 1  # 从列表开始
-            while True:
-                if interrupt_check['interrupt_check']:
-                    # 超出限制 需要终止
-                    print('牛人打招呼已打满')
-                    while True:
-                        if interrupt_check['can_return']:
-                            return
-                        else:
-                            time.sleep(1)
-                            continue
-                _card_ele = page.ele(
-                    locator=MAIN_PAGE_AWESOME_PERSON_LIST_CARD_XPATH.format(index), timeout=5)  # 获取卡片元素
-                if not _card_ele:
-                    # 当前职位已经没有推荐牛人
-                    _job_select_ele = page.ele(locator=MAIN_PAGE_AWESOME_PERSON_SEARCH_LABEL_XPATH, timeout=2)
-                    browser_mouse_move(page, _job_select_ele.rect.location)
-                    page.actions.scroll(delta_y=10000)  # 滑动到底部
+    for i in range(len(job_input)):
+        for _job_txt in job_input[i]:
+            person_num = person_input[i]
+            try:
+                click_element(page=page, xpath=MAIN_PAGE_AWESOME_PERSON_SEARCH_LABEL_XPATH)  # 点击职位筛选框
+                click_element(page=page, xpath=MAIN_PAGE_AWESOME_PERSON_JOB_SEARCH_XPATH)  # 点击搜索输入框
+                page.actions.type(_job_txt)
+                click_element(page=page, xpath=MAIN_PAGE_AWESOME_PERSON_JOB_LIST_FIRST_XPATH)  # 点击搜索结果的职位
+                click_element(page=page, xpath=MAIN_PAGE_AWESOME_PERSON_FILTER_LABEL_XPATH)  # 点击筛选条件框
+                _filter_wrap_ele = page.ele(locator=MAIN_PAGE_AWESOME_PERSON_FILTER_WRAP_XPATH, timeout=5)  # 获取筛选界面容器元素
+                for _filter in filter_input[i]:
+                    click_element_by_ele(page, _filter_wrap_ele.ele(locator='@text()={0}'.format(_filter)))  # 点击筛选条件
+                click_element(page=page, xpath=MAIN_PAGE_AWESOME_PERSON_FILTER_WRAP_CONFIRM_XPATH)  # 点击确认
+                time.sleep(random.uniform(1.5, 2.0))  # 等待搜索结果
+                index = 1  # 从列表开始
+                while True:
+                    if interrupt_check['interrupt_check']:
+                        # 超出限制 需要终止
+                        print('牛人打招呼已打满')
+                        while True:
+                            if interrupt_check['can_return']:
+                                return
+                            else:
+                                time.sleep(1)
+                                continue
                     _card_ele = page.ele(
-                        locator=MAIN_PAGE_AWESOME_PERSON_LIST_CARD_XPATH.format(index), timeout=10)
+                        locator=MAIN_PAGE_AWESOME_PERSON_LIST_CARD_XPATH.format(index), timeout=5)  # 获取卡片元素
                     if not _card_ele:
-                        print('当前职位已经没有推荐牛人')
-                        break
-                _say_hello_ele = _card_ele.ele(locator='xpath:div/div[3]/div[3]/span/div/button', timeout=2)
-                index += 1
-                if not _say_hello_ele:
-                    _say_hello_ele = _card_ele.ele(locator='xpath:div/div[3]/div[2]/span/div/button', timeout=2)
+                        # 当前职位已经没有推荐牛人
+                        _job_select_ele = page.ele(locator=MAIN_PAGE_AWESOME_PERSON_SEARCH_LABEL_XPATH, timeout=2)
+                        browser_mouse_move(page, _job_select_ele.rect.location)
+                        page.actions.scroll(delta_y=10000)  # 滑动到底部
+                        _card_ele = page.ele(
+                            locator=MAIN_PAGE_AWESOME_PERSON_LIST_CARD_XPATH.format(index), timeout=10)
+                        if not _card_ele:
+                            print('当前职位已经没有推荐牛人')
+                            break
+                    _say_hello_ele = _card_ele.ele(locator='xpath:div/div[3]/div[3]/span/div/button', timeout=2)
+                    index += 1
                     if not _say_hello_ele:
-                        print("当前职位没有推荐牛人")
+                        _say_hello_ele = _card_ele.ele(locator='xpath:div/div[3]/div[2]/span/div/button', timeout=2)
+                        if not _say_hello_ele:
+                            print("当前职位没有推荐牛人")
+                            continue
+                    try:
+                        click_element_by_ele(page, _say_hello_ele)  # 点击打招呼
+                        person_num -= 1
+                        if person_num <= 0:
+                            print('当前职位打招呼结束{0}'.format(_job_txt))
+                            break
+                    except Exception:
+                        print("打招呼失败")
                         continue
-                try:
-                    click_element_by_ele(page, _say_hello_ele)  # 点击打招呼
-                except Exception:
-                    print("打招呼失败")
-                    continue
-        except Exception:
-            print('当前职位打招呼失败{0}'.format(_job_txt))
-            continue
+            except Exception:
+                print('当前职位打招呼中断{0}'.format(_job_txt))
+                continue
 
 
 def close_message_information(page):
@@ -302,6 +308,9 @@ def get_filter_option_list(page, format_str):
         index += 1
         if _filter_item_ele.attr('class') == 'filter-item age':
             continue
+        _name = _filter_item_ele.ele(locator='xpath:div/div[1]')
+        if not _name or _name.text in ['牛人关键词', '专业']:
+            continue
         _options = _filter_item_ele.eles(locator='@class=option')
         for _option_ele in _options:
             result.append(_option_ele.raw_text)
@@ -329,13 +338,28 @@ def get_filter_list(page):
 @popup_when_ele_existed(locator=CAPTCHA_PAGE_LOCATOR)
 def do_chain(page):
     page.get('https://www.zhipin.com/web/chat/recommend')  # 推荐牛人界面
-    _job_input, _filter_input = popup_multiple_multiselect(
-        ["请输入职位名称,多个职位使用;(英文输入法)分隔", "请输入职位筛选条件,多个条件使用;(英文输入法)分隔"],
-        [get_position_list(page), get_filter_list(page)])
-    print(_job_input, _filter_input)
+    _position_list = get_position_list(page)
+    _filter_list = get_filter_list(page)
+    _person_input, _job_input, _filter_input = [], [], []
+    while True:
+        result = popup_mixed_inputs([
+            {'type': 'input', 'title': '打招呼人数'},
+            {'type': 'multiselect', 'title': '选择职位', 'choices': _position_list},
+            {'type': 'multiselect', 'title': '选择筛选条件', 'choices': _filter_list}
+        ])
+        # result = popup_multiple_multiselect(
+        # ["请输入职位名称,多个职位使用;(英文输入法)分隔", "请输入职位筛选条件,多个条件使用;(英文输入法)分隔"],
+        # [_position_list, _filter_list])
+        if not result:
+            print("取消")
+            break
+        _person_input.append(int(result[0]))
+        _job_input.append(result[1].split(';'))
+        _filter_input.append(result[2].split(';'))
+    print(_person_input, _job_input, _filter_input)
     # 进入主界面
     close_message_information(page)  # 关闭消息提醒
-    say_hello(page, _job_input, _filter_input)  # 第一步 打招呼
+    say_hello(page, _person_input, _job_input, _filter_input)  # 第一步 打招呼
     click_element(page=page, xpath=MAIN_PAGE_COMMUNICATION_XPATH)  # 点击沟通
     proactive_resume(page)  # 第二步 收取主动打招呼的简历
     passive_resume(page)  # 第三步 处理新招呼 求简历

@@ -57,6 +57,51 @@ class MultiSelectDialog(simpledialog.Dialog):
             self.result.append(';'.join(selections))
 
 
+class MixedInputDialog(simpledialog.Dialog):
+    def __init__(self, parent, config_list):
+        """
+        config_list: 包含配置字典的列表，每个字典定义一个控件
+        字典格式:
+        - {'type': 'input', 'title': '输入框标题'}
+        - {'type': 'multiselect', 'title': '多选框标题', 'choices': ['选项1', '选项2']}
+        """
+        self.config_list = config_list
+        self.controls = []
+        super().__init__(parent, title="混合输入对话框")
+
+    def body(self, master):
+        for i, config in enumerate(self.config_list):
+            # 创建标题标签
+            tk.Label(master, text=config['title']).grid(row=i, column=0, sticky="w", padx=5, pady=2)
+
+            if config['type'] == 'input':
+                # 创建输入框
+                entry = tk.Entry(master, width=60)
+                entry.grid(row=i, column=1, padx=5, pady=2, sticky="ew")
+                self.controls.append(entry)
+            elif config['type'] == 'multiselect':
+                # 创建多选列表框
+                listbox = tk.Listbox(master, selectmode=tk.MULTIPLE, width=60, height=6, exportselection=0)
+                for choice in config['choices']:
+                    listbox.insert(tk.END, choice)
+                listbox.grid(row=i, column=1, padx=5, pady=2, sticky="ew")
+                self.controls.append(listbox)
+
+            master.columnconfigure(1, weight=1)
+
+        return self.controls[0] if self.controls else None
+
+    def apply(self):
+        self.result = []
+        for i, config in enumerate(self.config_list):
+            control = self.controls[i]
+            if config['type'] == 'input':
+                self.result.append(control.get())
+            elif config['type'] == 'multiselect':
+                selections = [control.get(j) for j in control.curselection()]
+                self.result.append(';'.join(selections))
+
+
 def popup_multiple_inputs(prompts: list[str]) -> list[str] | None:
     """
     弹出包含多个输入框的对话框，返回字符串列表或 None（点取消）
@@ -144,3 +189,24 @@ def safe_gui_call(func, *args, **kwargs):
         if status == 'error':
             raise result
         return result
+
+
+def popup_mixed_inputs(config_list: list[dict]) -> list[str] | None:
+    """
+    弹出包含多种类型控件的对话框
+
+    Args:
+        config_list: 控件配置列表
+
+    Returns:
+        list[str] | None: 用户输入或选择的结果列表
+
+    示例：
+    >>> result = popup_mixed_inputs([
+            {'type': 'input', 'title': '自定义职位名称:'},
+            {'type': 'multiselect', 'title': '选择筛选条件:', 'choices': ['男', '女', '应届生']}
+        ])
+    >>> print(result)
+    """
+    dialog = MixedInputDialog(root, config_list)
+    return dialog.result if hasattr(dialog, 'result') else None
