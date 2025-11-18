@@ -375,7 +375,7 @@ def do_chain(page):
             {'type': 'multiselect', 'title': '选择职位', 'choices': _position_list},
             {'type': 'multiselect', 'title': '选择筛选条件', 'choices': _filter_list},
             {'type': 'input', 'title': '期望职位'},
-            {'type': 'input', 'title': '年龄范围(x-y格式)例如1-18为1<=目标<=18'}
+            {'type': 'input', 'title': '年龄范围(x-y格式)例如1-18'}
         ], '下一步', '停止选择')
         if not result:
             print("取消")
