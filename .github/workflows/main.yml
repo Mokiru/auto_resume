@@ -193,8 +193,8 @@ jobs:
       - name: Create ZIP package
         id: create_package
         run: |
-          VERSION="${{ steps.target-tag.outputs.VERSION }}"
-          PACKAGE_NAME="AutoBoss-v$VERSION"
+          $VERSION="${{ steps.target-tag.outputs.VERSION }}"
+          $PACKAGE_NAME="AutoBoss-v$VERSION"
           
           Write-Host "创建压缩包: $PACKAGE_NAME.zip"
           
