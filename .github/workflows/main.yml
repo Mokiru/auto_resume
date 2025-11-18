@@ -157,8 +157,8 @@ jobs:
           # 清理版本号（移除开头的v）
           $VERSION=$TAG -replace '^v', ''
           
-          echo "TAG_NAME=$TAG" >> $GITHUB_OUTPUT
-          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "TAG_NAME=$TAG" >> $env:GITHUB_OUTPUT
+          echo "VERSION=$VERSION" >> $env:GITHUB_OUTPUT
           Write-Host "最终版本: $VERSION"
 
       - name: Checkout repository
