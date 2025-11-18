@@ -5,12 +5,10 @@ import traceback
 import re
 import threading
 
-from DrissionPage.errors import ElementNotFoundError
-
 from base_operates import click_element, click_element_by_ele, open_browser, browser_mouse_move
 from operate_extensions import if_not_selected_click
 from page_decorator import say_call_dialog_solve, popup_when_ele_existed
-from simple_dialog import popup_input, popup_multiple_multiselect, get_global_root, popup_mixed_inputs, safe_gui_call
+from simple_dialog import popup_input, get_global_root, popup_mixed_inputs, safe_gui_call
 from timer_function_decorator import deadline_decorator
 
 CAPTCHA_PAGE_LOCATOR = '@text()=您的账号可能存在异常访问行为'
@@ -35,6 +33,9 @@ MAIN_PAGE_AWESOME_PERSON_FILTER_WRAP_CONFIRM_XPATH = r'xpath://*[@id="headerWrap
 MAIN_PAGE_COMMUNICATION_MESSAGE_CHAT_XPATH = r'xpath://*[@id="container"]/div[1]/div/div[2]/div[2]/div[2]/div[1]/div[1]/div[2]/div[2]'  # 沟通中的消息对话框xpath
 MAIN_PAGE_COMMUNICATION_XPATH = r'xpath://*[@id="wrap"]/div[1]/div/dl[4]'
 
+URL_LOGIN = 'https://www.zhipin.com/web/user/?ka=bticket'
+URL_AWESOME = 'https://www.zhipin.com/web/chat/recommend'
+URL_COMMUNICATION = 'https://www.zhipin.com/web/chat/index'
 
 def check_unread(ele) -> bool:
     """
@@ -192,7 +193,7 @@ def passive_resume(page):
 
 @say_call_dialog_solve
 def say_hello(page, person_input: list[int], job_input: list[list[str]], filter_input: list[list[str]],
-              desired_input: list[list[str]],
+              desired_input: list[list[str]], age_input: list[list[str]],
               interrupt_check=None):
     """
     打招呼
@@ -201,6 +202,7 @@ def say_hello(page, person_input: list[int], job_input: list[list[str]], filter_
     :param job_input: 示例 ['产品经理-26届校招(J15116) _ 北京  10-15K']
     :param filter_input: 筛选条件
     :param desired_input: 期望职位筛选
+    :param age_input: 年龄筛选
     :param interrupt_check: 中断标识
     :return:
     """
@@ -260,6 +262,12 @@ def say_hello(page, person_input: list[int], job_input: list[list[str]], filter_
                     if not can_say_hello:
                         print('当前职位期望职位不符')
                         continue
+                    _age_ele = _card_ele.ele(locator='xpath:div[1]/div[2]/div[2]/div')
+                    if _age_ele:
+                        _age = int(re.search(r'(\d{1,3})岁', _age_ele.text).group(1))
+                        if _age < int(age_input[i][0]) or _age > int(age_input[i][1]):
+                            print('当前职位年龄不符')
+                            continue
                     _say_hello_ele = _card_ele.ele(locator='@class=btn btn-greet', timeout=2)
                     if not _say_hello_ele:
                         print("当前职位没有推荐牛人")
@@ -357,16 +365,17 @@ def get_filter_list(page):
 
 @popup_when_ele_existed(locator=CAPTCHA_PAGE_LOCATOR)
 def do_chain(page):
-    page.get('https://www.zhipin.com/web/chat/recommend')  # 推荐牛人界面
+    page.get(URL_AWESOME)  # 推荐牛人界面
     _position_list = get_position_list(page)
     _filter_list = get_filter_list(page)
-    _person_input, _job_input, _filter_input, _desired_input = [], [], [], []
+    _person_input, _job_input, _filter_input, _desired_input, _age_input = [], [], [], [], []
     while True:
         result = safe_gui_call(popup_mixed_inputs, [
             {'type': 'input', 'title': '打招呼人数'},
             {'type': 'multiselect', 'title': '选择职位', 'choices': _position_list},
             {'type': 'multiselect', 'title': '选择筛选条件', 'choices': _filter_list},
             {'type': 'input', 'title': '期望职位'},
+            {'type': 'input', 'title': '年龄范围(x-y格式)例如1-18为1<=目标<=18'}
         ], '下一步', '停止选择')
         if not result:
             print("取消")
@@ -375,11 +384,12 @@ def do_chain(page):
         _job_input.append(result[1].split(';'))
         _filter_input.append(result[2].split(';'))
         _desired_input.append(result[3].split(';'))
-    print(_person_input, _job_input, _filter_input, _desired_input)
+        _age_input.append(result[4].split('-'))
+    print(_person_input, _job_input, _filter_input, _desired_input, _age_input)
     # 进入主界面
     close_message_information(page)  # 关闭消息提醒
-    say_hello(page, _person_input, _job_input, _filter_input, _desired_input)  # 第一步 打招呼
-    click_element(page=page, xpath=MAIN_PAGE_COMMUNICATION_XPATH)  # 点击沟通
+    say_hello(page, _person_input, _job_input, _filter_input, _desired_input, _age_input)  # 第一步 打招呼
+    page.get(URL_COMMUNICATION)
     proactive_resume(page)  # 第二步 收取主动打招呼的简历
     passive_resume(page)  # 第三步 处理新招呼 求简历
 
@@ -392,7 +402,7 @@ def run(_deadline_time: str):
         print("未找到浏览器路径，手动指定")
         browser = open_browser(safe_gui_call(popup_input, '请输入浏览器路径'))
     page = browser.latest_tab  # 获取最新标签页
-    page.get('https://www.zhipin.com/web/chat/recommend')  # 前往推荐牛人
+    page.get(URL_LOGIN)  # 前往登录界面
     # 等待登录
     while True:
         if page.ele('推荐牛人'):
