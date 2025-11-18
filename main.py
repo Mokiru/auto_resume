@@ -6,7 +6,7 @@ import re
 
 from DrissionPage.errors import ElementNotFoundError
 
-from base_operates import click_element, click_element_by_ele, open_browser
+from base_operates import click_element, click_element_by_ele, open_browser, browser_mouse_move
 from operate_extensions import if_not_selected_click
 from page_decorator import say_call_dialog_solve, popup_when_ele_existed
 from simple_dialog import popup_input, popup_multiple_multiselect, get_global_root
@@ -229,7 +229,9 @@ def say_hello(page, job_input: str, filter_input: str, interrupt_check=None):
                     locator=MAIN_PAGE_AWESOME_PERSON_LIST_CARD_XPATH.format(index), timeout=5)  # 获取卡片元素
                 if not _card_ele:
                     # 当前职位已经没有推荐牛人
-                    page.actions.scroll(delta_y=2000)  # 滑动到底部
+                    _job_select_ele = page.ele(locator=MAIN_PAGE_AWESOME_PERSON_SEARCH_LABEL_XPATH, timeout=2)
+                    browser_mouse_move(page, _job_select_ele.rect.location)
+                    page.actions.scroll(delta_y=10000)  # 滑动到底部
                     _card_ele = page.ele(
                         locator=MAIN_PAGE_AWESOME_PERSON_LIST_CARD_XPATH.format(index), timeout=10)
                     if not _card_ele:
@@ -238,8 +240,10 @@ def say_hello(page, job_input: str, filter_input: str, interrupt_check=None):
                 _say_hello_ele = _card_ele.ele(locator='xpath:div/div[3]/div[3]/span/div/button', timeout=2)
                 index += 1
                 if not _say_hello_ele:
-                    print('say_hello not found')
-                    continue
+                    _say_hello_ele = _card_ele.ele(locator='xpath:div/div[3]/div[2]/span/div/button', timeout=2)
+                    if not _say_hello_ele:
+                        print("当前职位没有推荐牛人")
+                        continue
                 try:
                     click_element_by_ele(page, _say_hello_ele)  # 点击打招呼
                 except Exception:
