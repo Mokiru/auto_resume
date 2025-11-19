@@ -11,7 +11,7 @@ from page_decorator import say_call_dialog_solve, popup_when_ele_existed
 from simple_dialog import popup_input, get_global_root, popup_mixed_inputs, safe_gui_call
 from timer_function_decorator import deadline_decorator
 
-CAPTCHA_PAGE_LOCATOR = '@text()=您的账号可能存在异常访问行为'
+CAPTCHA_PAGE_LOCATOR = r'@class=wrap-verify-slider'
 MAIN_PAGE_AWESOME_PERSON_CONTAINER_XPATH = r'xpath://*[@id="container"]'  # 推荐牛人界面容器
 MAIN_PAGE_AWESOME_PERSON_OVERFLOW_DIALOG_XPATH = r'xpath:/html/body/div[6]'  # 超出打招呼限制弹窗xpath
 MAIN_PAGE_AWESOME_PERSON_CHAT_XPATH = r'xpath:/html/body/div[5]/div/div'  # 推荐牛人界面 右下角消息

@@ -54,13 +54,13 @@ def say_call_dialog_solve(func):
 
 def check_dialog_popup(page, locator):
     while True:
-        _error_ele = page.ele(locator=locator, timeout=5)
+        _error_ele = page.ele(locator=locator, timeout=2)
         if _error_ele:
             # 出现验证
             safe_gui_call(show_warning_dialog, '请处理验证')
             print('验证')
         else:
-            time.sleep(1)
+            time.sleep(0.2)
             continue
 
 
