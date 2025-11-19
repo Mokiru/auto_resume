@@ -1,7 +1,7 @@
 import threading
 import time
 
-from base_operates import click_element, click_element_by_ele
+from base_operates import click_element_by_ele
 from simple_dialog import show_warning_dialog, safe_gui_call
 
 
@@ -11,22 +11,22 @@ def _solve_over_say_hello_dialog(page, interrupt_check, stop_event):
     :param page:
     :return:
     """
-    while True:
+    while not stop_event.is_set():
         _dialog_ele = page.ele(locator=r'xpath:/html/body/div[6]', timeout=5)
-        if not _dialog_ele:
-            continue
-        print('超出打招呼总量限制')
-        # 超出限制
-        interrupt_check['interrupt_check'] = True
-        # 点击关闭
-        _close_btn_ele = _dialog_ele.ele(locator='xpath:div[1]/div[2]/i')
-        if not _close_btn_ele:
-            print('未找到超出打招呼限制弹窗的关闭按钮')
-            break
-        else:
-            click_element_by_ele(page, _close_btn_ele)
-        interrupt_check['can_return'] = True
-        break
+        if _dialog_ele:
+            print('超出打招呼总量限制')
+            # 超出限制
+            interrupt_check['interrupt_check'] = True
+            # 点击关闭
+            _close_btn_ele = _dialog_ele.ele(locator='xpath:div[1]/div[2]/i')
+            if not _close_btn_ele:
+                print('未找到超出打招呼限制弹窗的关闭按钮')
+                break
+            else:
+                print('关闭弹窗')
+                click_element_by_ele(page, _close_btn_ele)
+            interrupt_check['can_return'] = True
+        time.sleep(0.1)
 
 
 def say_call_dialog_solve(func):

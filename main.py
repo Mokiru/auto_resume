@@ -282,7 +282,8 @@ def say_hello(page, person_input: list[int], job_input: list[list[str]], filter_
                     except Exception:
                         print("打招呼失败")
                         continue
-            except Exception:
+            except Exception as ex:
+                traceback.print_exc()
                 print('当前职位打招呼中断{0}'.format(_job_txt))
                 continue
 
