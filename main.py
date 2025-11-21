@@ -7,7 +7,7 @@ import threading
 
 from base_operates import click_element, click_element_by_ele, open_browser, browser_mouse_move
 from operate_extensions import if_not_selected_click
-from page_decorator import say_call_dialog_solve, popup_when_ele_existed
+from page_decorator import say_call_dialog_solve, popup_when_ele_existed, captcha_status
 from simple_dialog import popup_input, get_global_root, popup_mixed_inputs, safe_gui_call
 from timer_function_decorator import deadline_decorator
 
@@ -36,6 +36,7 @@ MAIN_PAGE_COMMUNICATION_XPATH = r'xpath://*[@id="wrap"]/div[1]/div/dl[4]'
 URL_LOGIN = 'https://www.zhipin.com/web/user/?ka=bticket'
 URL_AWESOME = 'https://www.zhipin.com/web/chat/recommend'
 URL_COMMUNICATION = 'https://www.zhipin.com/web/chat/index'
+
 
 def check_unread(ele) -> bool:
     """
@@ -67,6 +68,10 @@ def proactive_resume(page):
             list_first_ele = page.ele(
                 r'xpath://*[@id="container"]/div[1]/div/div[2]/div[2]/div[1]/div[2]/div/div[2]/div[1]')
             if not list_first_ele:
+                with captcha_status['lock']:
+                    if captcha_status['captcha_status']:
+                        # 当前正在处理验证
+                        continue
                 return
             index = 1
             while True:
@@ -154,6 +159,10 @@ def passive_resume(page):
             list_first_ele = page.ele(
                 r'xpath://*[@id="container"]/div[1]/div/div[2]/div[2]/div[1]/div[2]/div/div[2]/div[1]')
             if not list_first_ele:
+                with captcha_status['lock']:
+                    if captcha_status['captcha_status']:
+                        # 当前正在处理验证
+                        continue
                 return
             index = 1
             while True:

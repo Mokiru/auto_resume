@@ -4,6 +4,11 @@ import time
 from base_operates import click_element_by_ele
 from simple_dialog import show_warning_dialog, safe_gui_call
 
+captcha_status = {
+    'captcha_status': False,
+    'lock': threading.Lock(),
+}
+
 
 def _solve_over_say_hello_dialog(page, interrupt_check, stop_event):
     """
@@ -57,8 +62,14 @@ def check_dialog_popup(page, locator):
         _error_ele = page.ele(locator=locator, timeout=2)
         if _error_ele:
             # 出现验证
+            with captcha_status['lock']:
+                captcha_status['captcha_status'] = True
             safe_gui_call(show_warning_dialog, '请处理验证')
             print('验证')
+            while page.ele(locator=locator, timeout=2):
+                time.sleep(1)
+            with captcha_status['lock']:
+                captcha_status['captcha_status'] = False
         else:
             time.sleep(0.2)
             continue
