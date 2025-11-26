@@ -81,7 +81,7 @@ def proactive_resume(page):
             # 校验列表是否有元素
             list_item_ele = page.ele(
                 r'xpath://*[@id="container"]/div[1]/div/div[2]/div[2]/div[1]/div[2]/div/div[2]/div[' + str(
-                    index) + ']', timeout=5)
+                    index) + ']', timeout=4)
             if not list_item_ele:
                 break
             index += 1
