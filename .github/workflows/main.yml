@@ -250,7 +250,7 @@ jobs:
             - **提交**: ${{ github.sha }}
             - **触发提交**: ${{ github.event.head_commit.message }}
           files: |
-            ${{ steps.create_package.outputs.package_name }}
+            ${{ steps.create_package.outputs.boss_package }}
             ${{ steps.create_packages.outputs.liepin_package }}
           draft: false
         env:
