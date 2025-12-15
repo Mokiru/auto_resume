@@ -302,15 +302,14 @@ def say_hello(page, person_input: list[int], job_input: list[list[str]], filter_
             except Exception as ex:
                 traceback.print_exc()
                 with captcha_status['lock']:
-                    if captcha_status['captcha_status']:
-                        # 当前正在处理验证
-                        wait_for_ele(page=page, xpath=MAIN_PAGE_AWESOME_PERSON_XPATH,
-                                     funcs=[click_element_by_ele])  # 点击推荐牛人
-                        continue
-                    else:
+                    if not captcha_status['captcha_status']:
                         _current_job_index += 1
                         print('当前职位打招呼中断{0}'.format(_job_txt))
                         continue
+                # 当前正在处理验证
+                wait_for_ele(page=page, xpath=MAIN_PAGE_AWESOME_PERSON_XPATH,
+                                     funcs=[click_element_by_ele])  # 点击推荐牛人
+                continue
 
 
 def close_message_information(page):
