@@ -260,4 +260,4 @@ jobs:
         run: |
           echo "🎉 构建和发布完成!"
           echo "📦 版本: ${{ steps.target-tag.outputs.TAG_NAME }}"
-          echo "📁 包文件: ${{ steps.create_package.outputs.boss_name }}, ${{ steps.create_package.outputs.liepin_name}}"
+          echo "📁 包文件: ${{ steps.create_package.outputs.boss_name }},  ${{ steps.create_package.outputs.liepin_name}}"
