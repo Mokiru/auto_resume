@@ -134,7 +134,7 @@ jobs:
           echo "✅ 标签 $TAG 创建成功"
 
   build-and-release:
-    needs: [analyze-commits, create-tag]
+    needs: [ analyze-commits, create-tag ]
     runs-on: windows-latest
     steps:
       - name: Debug information
@@ -180,7 +180,7 @@ jobs:
           }
           pip install pyinstaller
 
-      - name: Build executable
+      - name: Build boss.exe executable
         run: |
           if (Test-Path "boss.py" ) {
             pyinstaller --onefile boss.py
@@ -190,25 +190,48 @@ jobs:
             exit 1
           }
 
+      - name: Build liepin.exe executable
+        run: |
+          if (Test-Path "liepin.py" ) {
+            pyinstaller --onefile liepin.py
+            Write-Host "✅ liepin.py 打包完成"
+          } else {
+            Write-Error "❌ liepin.py 文件不存在"
+            Get-ChildItem
+            exit 1
+          }
+
       - name: Create ZIP package
         id: create_package
         run: |
           $VERSION="${{ steps.target-tag.outputs.VERSION }}"
-          $PACKAGE_NAME="AutoBoss-v$VERSION"
-          
-          Write-Host "创建压缩包: $PACKAGE_NAME.zip"
-          
+          Write-Host "创建压缩包:"
+          $BOSS_PACKAGE="AutoBoss-v$VERSION.zip"
           if (Test-Path "dist/boss.exe" ) {
             Write-Host "找到Windows可执行文件: dist/boss.exe"
-            Compress-Archive -Path "dist/boss.exe" -DestinationPath "$PACKAGE_NAME.zip"
-            echo "package_name=$PACKAGE_NAME.zip" >> $env:GITHUB_OUTPUT
-            Write-Host "✅ Package created: $PACKAGE_NAME.zip"
+            Compress-Archive -Path "dist/boss.exe" -DestinationPath "$BOSS_PACKAGE"
+            Write-Host "✅ Package created: $BOSS_PACKAGE"
           } else {
             Write-Error "❌ 可执行文件不存在"
             Get-ChildItem -Path "dist/" -ErrorAction SilentlyContinue
             Get-ChildItem -Recurse -Filter "boss*" -ErrorAction SilentlyContinue
             exit 1
           }
+          
+          # 创建liepin压缩包
+          $LIEPIN_PACKAGE="AutoLiepin-v$VERSION.zip"
+          if (Test-Path "dist/liepin.exe" ) {
+            Compress-Archive -Path "dist/liepin.exe" -DestinationPath "$LIEPIN_PACKAGE"
+            Write-Host "✅ Liepin包创建成功: $LIEPIN_PACKAGE"
+          } else {
+            Write-Error "❌ liepin.exe 不存在"
+            exit 1
+          }
+          
+          echo "package_name=$BOSS_PACKAGE" >> $env:GITHUB_OUTPUT
+          echo "package_name=$LIEPIN_PACKAGE" >> $env:GITHUB_OUTPUT
+          # 列出所有文件确认
+          Get-ChildItem -Name "*.zip"
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
@@ -226,7 +249,9 @@ jobs:
             - **构建时间**: $(date -Iseconds)
             - **提交**: ${{ github.sha }}
             - **触发提交**: ${{ github.event.head_commit.message }}
-          files: ${{ steps.create_package.outputs.package_name }}
+          files: |
+            ${{ steps.create_package.outputs.package_name }}
+            ${{ steps.create_packages.outputs.liepin_package }}
           draft: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -138,8 +138,9 @@ def _click_element(tab, ele, button='left', count=1, is_random=True):
 
 
 def open_browser(path: Optional[str] = None) -> Chromium:
+    co = ChromiumOptions()
+    co.auto_port()
     if path:
-        co = ChromiumOptions()
         co.set_browser_path(path)
         browser = Chromium(co)
     else:
