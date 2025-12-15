@@ -223,7 +223,9 @@ def say_hello(page, person_input: list[int], job_input: list[list[str]], filter_
     """
     wait_for_ele(page=page, xpath=MAIN_PAGE_AWESOME_PERSON_XPATH, funcs=[click_element_by_ele])  # 点击推荐牛人
     for i in range(len(job_input)):
-        for _job_txt in job_input[i]:
+        _current_job_index = 0
+        while _current_job_index < len(job_input[i]):
+            _job_txt = job_input[i][_current_job_index]
             person_num = person_input[i]
             try:
                 click_element(page=page, xpath=MAIN_PAGE_AWESOME_PERSON_SEARCH_LABEL_XPATH)  # 点击职位筛选框
@@ -299,8 +301,16 @@ def say_hello(page, person_input: list[int], job_input: list[list[str]], filter_
                         continue
             except Exception as ex:
                 traceback.print_exc()
-                print('当前职位打招呼中断{0}'.format(_job_txt))
-                continue
+                with captcha_status['lock']:
+                    if captcha_status['captcha_status']:
+                        # 当前正在处理验证
+                        wait_for_ele(page=page, xpath=MAIN_PAGE_AWESOME_PERSON_XPATH,
+                                     funcs=[click_element_by_ele])  # 点击推荐牛人
+                        continue
+                    else:
+                        _current_job_index += 1
+                        print('当前职位打招呼中断{0}'.format(_job_txt))
+                        continue
 
 
 def close_message_information(page):
