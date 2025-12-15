@@ -182,10 +182,10 @@ jobs:
 
       - name: Build executable
         run: |
-          if (Test-Path "main.py" ) {
-            pyinstaller --onefile main.py
+          if (Test-Path "boss.py" ) {
+            pyinstaller --onefile boss.py
           } else {
-            Write-Error "❌ main.py 文件不存在"
+            Write-Error "❌ boss.py 文件不存在"
             Get-ChildItem
             exit 1
           }
@@ -198,15 +198,15 @@ jobs:
           
           Write-Host "创建压缩包: $PACKAGE_NAME.zip"
           
-          if (Test-Path "dist/main.exe" ) {
-            Write-Host "找到Windows可执行文件: dist/main.exe"
-            Compress-Archive -Path "dist/main.exe" -DestinationPath "$PACKAGE_NAME.zip"
+          if (Test-Path "dist/boss.exe" ) {
+            Write-Host "找到Windows可执行文件: dist/boss.exe"
+            Compress-Archive -Path "dist/boss.exe" -DestinationPath "$PACKAGE_NAME.zip"
             echo "package_name=$PACKAGE_NAME.zip" >> $env:GITHUB_OUTPUT
             Write-Host "✅ Package created: $PACKAGE_NAME.zip"
           } else {
             Write-Error "❌ 可执行文件不存在"
             Get-ChildItem -Path "dist/" -ErrorAction SilentlyContinue
-            Get-ChildItem -Recurse -Filter "main*" -ErrorAction SilentlyContinue
+            Get-ChildItem -Recurse -Filter "boss*" -ErrorAction SilentlyContinue
             exit 1
           }
 
