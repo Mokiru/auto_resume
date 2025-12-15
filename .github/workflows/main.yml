@@ -228,8 +228,8 @@ jobs:
             exit 1
           }
           
-          echo "package_name=$BOSS_PACKAGE" >> $env:GITHUB_OUTPUT
-          echo "package_name=$LIEPIN_PACKAGE" >> $env:GITHUB_OUTPUT
+          echo "boss_name=$BOSS_PACKAGE,$LIEPIN_PACKAGE" >> $env:GITHUB_OUTPUT
+          echo "liepin_name=$LIEPIN_PACKAGE" >> $env:GITHUB_OUTPUT
           # 列出所有文件确认
           Get-ChildItem -Name "*.zip"
 
@@ -250,8 +250,8 @@ jobs:
             - **提交**: ${{ github.sha }}
             - **触发提交**: ${{ github.event.head_commit.message }}
           files: |
-            ${{ steps.create_package.outputs.boss_package }}
-            ${{ steps.create_packages.outputs.liepin_package }}
+            ${{ steps.create_package.outputs.boss_name }}
+            ${{ steps.create_package.outputs.liepin_name }}
           draft: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -260,4 +260,4 @@ jobs:
         run: |
           echo "🎉 构建和发布完成!"
           echo "📦 版本: ${{ steps.target-tag.outputs.TAG_NAME }}"
-          echo "📁 包文件: ${{ steps.create_package.outputs.package_name }}"
+          echo "📁 包文件: ${{ steps.create_package.outputs.boss_name }}, ${{ steps.create_package.outputs.liepin_name}}"
