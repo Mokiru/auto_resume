@@ -83,8 +83,9 @@ def passive_resume(page) -> None:
 
 
 def do_chain(page):
-    passive_resume(page)
-    proactive_resume(page)
+    while True:
+        proactive_resume(page)
+        passive_resume(page)
 
 
 @deadline_decorator
