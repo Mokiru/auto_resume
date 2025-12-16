@@ -228,7 +228,7 @@ jobs:
             exit 1
           }
           
-          echo "boss_name=$BOSS_PACKAGE,$LIEPIN_PACKAGE" >> $env:GITHUB_OUTPUT
+          echo "boss_name=$BOSS_PACKAGE" >> $env:GITHUB_OUTPUT
           echo "liepin_name=$LIEPIN_PACKAGE" >> $env:GITHUB_OUTPUT
           # 列出所有文件确认
           Get-ChildItem -Name "*.zip"
