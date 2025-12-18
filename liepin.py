@@ -41,6 +41,12 @@ def proactive_resume(page) -> None:
         if person_ele.attr('class') != 'im-ui-contact-info':  # 跳过非目标
             continue
         click_element_by_ele(page, person_ele)  # 打开对话框
+        # 判断是否触发注销或停用
+        _cancel_btn_ele = page.ele(locator=COMMUNICATION_CONFIRM_RESUME_BUTTON_FILTER, timeout=5)
+        if _cancel_btn_ele:
+            print('对方已注销或停用')
+            click_element_by_ele(page, _cancel_btn_ele)
+            continue
         get_resume_button_ele = page.ele(COMMUNICATION_GET_RESUME_BUTTON_XPATH)  # 获取简历相关按钮
         if get_resume_button_ele.text == '索要简历':
             click_element_by_ele(page, get_resume_button_ele)
@@ -73,6 +79,12 @@ def passive_resume(page) -> None:
         if person_ele.attr('class') != 'im-ui-contact-info':  # 跳过非目标
             continue
         click_element_by_ele(page, person_ele)  # 打开对话框
+        # 判断是否触发注销或停用
+        _cancel_btn_ele = page.ele(locator=COMMUNICATION_CONFIRM_RESUME_BUTTON_FILTER, timeout=5)
+        if _cancel_btn_ele:
+            print('对方已注销或停用')
+            click_element_by_ele(page, _cancel_btn_ele)
+            continue
         get_resume_button_ele = page.ele(COMMUNICATION_GET_RESUME_BUTTON_XPATH)  # 获取简历相关按钮
         if get_resume_button_ele.text == '索要简历':
             click_element_by_ele(page, get_resume_button_ele)
