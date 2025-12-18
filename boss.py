@@ -165,7 +165,8 @@ def passive_resume(page):
                 if captcha_status['captcha_status']:
                     # 当前正在处理验证
                     continue
-            return
+            print('当前消息列表为空')
+            continue
         index = 1
         while True:
             with captcha_status['lock']:
