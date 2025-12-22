@@ -140,11 +140,12 @@ def _click_element(tab, ele, button='left', count=1, is_random=True):
 def open_browser(path: Optional[str] = None) -> Chromium:
     co = ChromiumOptions()
     co.auto_port()
+    co.set_argument('--start-maximized')
     if path:
         co.set_browser_path(path)
         browser = Chromium(co)
     else:
-        browser = Chromium()
+        browser = Chromium(co)
     return browser
 
 
