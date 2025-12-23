@@ -37,6 +37,8 @@ URL_LOGIN = 'https://www.zhipin.com/web/user/?ka=bticket'
 URL_AWESOME = 'https://www.zhipin.com/web/chat/recommend'
 URL_COMMUNICATION = 'https://www.zhipin.com/web/chat/index'
 
+USER_DATA_DIR = os.path.join(os.environ['APPDATA'], 'auto_resume', 'boss')
+
 
 def check_unread(ele) -> bool:
     """
@@ -423,10 +425,10 @@ def do_chain(page):
 @deadline_decorator
 def run(_deadline_time: str):
     try:
-        browser = open_browser()
+        browser = open_browser(user_data_dir=USER_DATA_DIR)
     except FileNotFoundError:
         print("未找到浏览器路径，手动指定")
-        browser = open_browser(safe_gui_call(popup_input, '请输入浏览器路径'))
+        browser = open_browser(safe_gui_call(popup_input, '请输入浏览器路径'), user_data_dir=USER_DATA_DIR)
     page = browser.latest_tab  # 获取最新标签页
     page.get(URL_LOGIN)  # 前往登录界面
     # 等待登录
