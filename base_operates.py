@@ -137,11 +137,12 @@ def _click_element(tab, ele, button='left', count=1, is_random=True):
     ele.click.at(offset_x=_offset_x, offset_y=_offset_y, button=button, count=count)
 
 
-def open_browser(path: Optional[str] = None, user_data_dir: Optional[str] = None) -> Chromium:
+def open_browser(path: Optional[str] = None, user_data_dir: Optional[str] = None, local_port: Optional[int] = 9222) -> Chromium:
     co = ChromiumOptions()
-    co.auto_port()
     co.set_argument('--start-maximized')
-    co.set_user_data_path(user_data_dir)
+    if user_data_dir:
+        co.set_user_data_path(user_data_dir)
+    co.set_local_port(local_port)
     if path:
         co.set_browser_path(path)
         browser = Chromium(co)

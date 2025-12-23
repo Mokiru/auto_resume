@@ -14,10 +14,12 @@ COMMUNICATION_NO_READ_XPATH = r'xpath://*[@id="main-container"]/section/section/
 COMMUNICATION_PERSON_LIST_XPATH_PREFIX = r'xpath://*[@id="main-container"]/section/section/main/div/div[1]/div/div[2]/aside/div[2]/div[1]/div/div[{0}]'
 COMMUNICATION_GET_RESUME_BUTTON_XPATH = r'xpath://*[@id="main-container"]/section/section/main/div/div[1]/div/div[2]/div/div[2]/div[3]/div[1]/div[1]/div/div[1]/div/div[3]/span/span'
 COMMUNICATION_CONFIRM_RESUME_BUTTON_FILTER = '@@class=ant-im-btn ant-im-btn-primary@@type=button'
+COMMUNICATION_MESSAGE_BOX_XPATH = r'xpath://*[@id="main-container"]/section/section/main/div/div[1]/div/div[2]/div/div[2]/div[2]/div[1]'
 
 COMMUNICATION_INITIATED_XPATH = r'xpath://*[@id="main-container"]/section/section/main/div/div[1]/div/div[1]/div[2]/div/div/div/label[3]'
 
 USER_DATA_DIR = os.path.join(os.environ['APPDATA'], 'auto_resume', 'liepin')
+PORT = 9223
 
 
 def proactive_resume(page) -> None:
@@ -49,7 +51,18 @@ def proactive_resume(page) -> None:
             print('对方已注销或停用')
             click_element_by_ele(page, _cancel_btn_ele)
             continue
+        _message_box_ele = page.s_ele(COMMUNICATION_MESSAGE_BOX_XPATH)  # 获取消息框
+        if not _message_box_ele:
+            print('未找到消息框，跳过')
+            continue
+        _had_request_resume = _message_box_ele.ele('@text()=你已向对方索要简历')
+        if _had_request_resume:
+            print('已请求过简历')
+            continue
         get_resume_button_ele = page.ele(COMMUNICATION_GET_RESUME_BUTTON_XPATH)  # 获取简历相关按钮
+        if not get_resume_button_ele:
+            print('未找到索要简历按钮')
+            continue
         if get_resume_button_ele.text == '索要简历':
             click_element_by_ele(page, get_resume_button_ele)
             confirm_ele = page.ele(COMMUNICATION_CONFIRM_RESUME_BUTTON_FILTER)
@@ -87,7 +100,18 @@ def passive_resume(page) -> None:
             print('对方已注销或停用')
             click_element_by_ele(page, _cancel_btn_ele)
             continue
+        _message_box_ele = page.s_ele(COMMUNICATION_MESSAGE_BOX_XPATH)  # 获取消息框
+        if not _message_box_ele:
+            print('未找到消息框，跳过')
+            continue
+        _had_request_resume = _message_box_ele.ele('@text()=你已向对方索要简历')
+        if _had_request_resume:
+            print('已请求过简历')
+            continue
         get_resume_button_ele = page.ele(COMMUNICATION_GET_RESUME_BUTTON_XPATH)  # 获取简历相关按钮
+        if not get_resume_button_ele:
+            print('未找到索要简历按钮')
+            continue
         if get_resume_button_ele.text == '索要简历':
             click_element_by_ele(page, get_resume_button_ele)
             confirm_ele = page.ele(COMMUNICATION_CONFIRM_RESUME_BUTTON_FILTER)
@@ -105,10 +129,11 @@ def do_chain(page):
 @deadline_decorator
 def run(_deadline_time: str):
     try:
-        browser = open_browser(user_data_dir=USER_DATA_DIR)
+        browser = open_browser(user_data_dir=USER_DATA_DIR, local_port=PORT)
     except FileNotFoundError:
         print("未找到浏览器路径，手动指定")
-        browser = open_browser(safe_gui_call(popup_input, '请输入浏览器路径'), user_data_dir=USER_DATA_DIR)
+        browser = open_browser(safe_gui_call(popup_input, '请输入浏览器路径'), user_data_dir=USER_DATA_DIR,
+                               local_port=PORT)
     page = browser.latest_tab  # 获取最新标签页
     page.get(URL_LOGIN)  # 前往登录界面
     # 等待登录
