@@ -14,9 +14,10 @@ from timer_function_decorator import deadline_decorator
 CAPTCHA_PAGE_LOCATOR = r'@class=wrap-verify-slider'
 MAIN_PAGE_AWESOME_PERSON_CONTAINER_XPATH = r'xpath://*[@id="container"]'  # 推荐牛人界面容器
 MAIN_PAGE_AWESOME_PERSON_OVERFLOW_DIALOG_XPATH = r'xpath:/html/body/div[6]'  # 超出打招呼限制弹窗xpath
-MAIN_PAGE_AWESOME_PERSON_CHAT_XPATH = r'xpath:/html/body/div[5]/div/div'  # 推荐牛人界面 右下角消息
-MAIN_PAGE_AWESOME_PERSON_CHAT_SETTING_XPATH = r'xpath:/html/body/div[5]/div[2]/div[1]/div[1]/div/span[2]/span'  # 消息提醒设置xpath
-MAIN_PAGE_AWESOME_PERSON_CHAT_SETTING_CONTAINER_XPATH = r'xpath:/html/body/div[5]/div[2]/div[1]/div[1]/div/span[2]/div/span[2]'  # 消息提醒开启切换按钮xpath
+MAIN_PAGE_AWESOME_PERSON_CHAT_XPATH = r'@class=chat-global-entry'  # 推荐牛人界面 右下角消息
+MAIN_PAGE_AWESOME_PERSON_CHAT_SETTING_XPATH = r'@class=setting'  # 消息提醒设置xpath
+MAIN_PAGE_AWESOME_PERSON_CHAT_SETTING_CONTAINER_XPATH = r'@class=ui-switch ui-switch-checked'  # 消息提醒开启切换按钮xpath
+MAIN_PAGE_AWESOME_PERSON_FILTER_EXPAND = '@class=vip-folded'  # 展开近期未看/活跃/院校等选项
 MAIN_PAGE_AWESOME_PERSON_XPATH = r'xpath://*[@id="wrap"]/div[1]/div/dl[2]'  # 主界面左侧菜单推荐牛人元素xpath
 MAIN_PAGE_AWESOME_PERSON_SEARCH_LABEL_XPATH = r'xpath://*[@id="headerWrap"]/div/div/div[2]'  # 主界面点击推荐牛人后的职位筛选框xpath
 MAIN_PAGE_AWESOME_PERSON_JOB_SEARCH_XPATH = r'xpath://*[@id="headerWrap"]/div/div/div[2]/div[2]/div[1]/input'  # 点击推荐牛人职位筛选框后出现的搜索框xpath
@@ -59,78 +60,79 @@ def proactive_resume(page):
     :param page:
     :return:
     """
+    if page.url != URL_COMMUNICATION:
+        page.get(URL_COMMUNICATION)
+    wait_for_ele(page=page, xpath=r'xpath://*[@id="container"]/div[1]/div/div[2]/div[1]/div/div/div/div[3]',
+                 funcs=[if_not_selected_click])  # 点击我发起
+    wait_for_ele(page=page,
+                 xpath=r'xpath://*[@id="container"]/div[1]/div/div[2]/div[2]/div[1]/div[1]/div[2]/div/span[2]',
+                 funcs=[click_element_by_ele])  # 点击未读
+    time.sleep(random.uniform(1.0, 1.5))
+    get_resume_key = {}
+    list_first_ele = page.ele(
+        r'xpath://*[@id="container"]/div[1]/div/div[2]/div[2]/div[1]/div[2]/div/div[2]/div[1]')
+    if not list_first_ele:
+        with captcha_status['lock']:
+            if captcha_status['captcha_status']:
+                # 当前正在处理验证
+                return
+        return
+    index = 1
     while True:
-        wait_for_ele(page=page, xpath=r'xpath://*[@id="container"]/div[1]/div/div[2]/div[1]/div/div/div/div[3]',
-                     funcs=[if_not_selected_click])  # 点击我发起
-        wait_for_ele(page=page,
-                     xpath=r'xpath://*[@id="container"]/div[1]/div/div[2]/div[2]/div[1]/div[1]/div[2]/div/span[2]',
-                     funcs=[click_element_by_ele])  # 点击未读
-        time.sleep(random.uniform(1.0, 1.5))
-        get_resume_key = {}
-        list_first_ele = page.ele(
-            r'xpath://*[@id="container"]/div[1]/div/div[2]/div[2]/div[1]/div[2]/div/div[2]/div[1]')
-        if not list_first_ele:
-            with captcha_status['lock']:
-                if captcha_status['captcha_status']:
-                    # 当前正在处理验证
-                    continue
-            return
-        index = 1
-        while True:
-            with captcha_status['lock']:
-                if captcha_status['captcha_status']:
-                    # 当前正在处理验证
-                    break
-            # 校验列表是否有元素
-            list_item_ele = page.ele(
-                r'xpath://*[@id="container"]/div[1]/div/div[2]/div[2]/div[1]/div[2]/div/div[2]/div[' + str(
-                    index) + ']', timeout=4)
-            if not list_item_ele:
+        with captcha_status['lock']:
+            if captcha_status['captcha_status']:
+                # 当前正在处理验证
                 break
-            index += 1
-            key = list_item_ele.attr('key')
-            if key in get_resume_key:
+        # 校验列表是否有元素
+        list_item_ele = page.ele(
+            r'xpath://*[@id="container"]/div[1]/div/div[2]/div[2]/div[1]/div[2]/div/div[2]/div[' + str(
+                index) + ']', timeout=4)
+        if not list_item_ele:
+            break
+        index += 1
+        key = list_item_ele.attr('key')
+        if key in get_resume_key:
+            continue
+        try:
+            click_element_by_ele(page, list_item_ele)
+            get_resume_key[key] = True
+            chat_message_ele = page.s_ele(
+                MAIN_PAGE_COMMUNICATION_MESSAGE_CHAT_XPATH,
+                timeout=5)  # 获取消息框元素
+            # if chat_message_ele.ele(locator='@class=message-dialog-icon resume-icon'):
+            if chat_message_ele.ele(locator='@text()=点击预览附件简历', timeout=2):
+                # 发送过简历
+                print('对方已经发送简历')
                 continue
-            try:
-                click_element_by_ele(page, list_item_ele)
-                get_resume_key[key] = True
-                chat_message_ele = page.s_ele(
-                    MAIN_PAGE_COMMUNICATION_MESSAGE_CHAT_XPATH,
-                    timeout=5)  # 获取消息框元素
-                # if chat_message_ele.ele(locator='@class=message-dialog-icon resume-icon'):
-                if chat_message_ele.ele(locator='@text()=点击预览附件简历', timeout=2):
-                    # 发送过简历
-                    print('对方已经发送简历')
+            can_confirm = [0, False]
+            for _message_ele in chat_message_ele.children():
+                can_confirm[0] += 1
+                if not _message_ele.ele(locator='@class=message-dialog-icon message-dialog-icon-resume'):
                     continue
-                can_confirm = [0, False]
-                for _message_ele in chat_message_ele.children():
-                    can_confirm[0] += 1
-                    if not _message_ele.ele(locator='@class=message-dialog-icon message-dialog-icon-resume'):
-                        continue
-                    can_confirm[1] = True
-                    break
-                if can_confirm[1]:
-                    # 点击同意，接收简历
-                    print('点击同意，接收简历')
-                    _confirm_message = page.ele(locator=MAIN_PAGE_COMMUNICATION_MESSAGE_CHAT_XPATH,
-                                                timeout=5).child(index=can_confirm[0])
-                    _confirm_btn = _confirm_message.ele(locator='@@class=card-btn@@text()=同意')
-                    click_element_by_ele(page, _confirm_btn)
-                    continue
-                if chat_message_ele.ele(locator='@text()=方便发一份你的简历过来吗？', timeout=2):
-                    print('当前已经请求简历，但对方未发送')
-                    continue
-                page.actions.type('方便发一份你的简历过来吗？\n')
-                time.sleep(random.uniform(1.0, 1.5))
-                click_element(page,
-                              r'xpath://*[@id="container"]/div[1]/div/div[2]/div[2]/div[2]/div[1]/div[3]/div[1]/div[2]/div[1]/div[1]/span[1]')  # 求简历
-                time.sleep(random.uniform(0.5, 1.5))
-                click_element(page,
-                              r'xpath://*[@id="container"]/div[1]/div/div[2]/div[2]/div[2]/div[1]/div[3]/div[1]/div[2]/div[1]/div[1]/div/div/span[2]')  # 确认
-                print("求简历")
-            except Exception:
-                get_resume_key[key] = False
+                can_confirm[1] = True
+                break
+            if can_confirm[1]:
+                # 点击同意，接收简历
+                print('点击同意，接收简历')
+                _confirm_message = page.ele(locator=MAIN_PAGE_COMMUNICATION_MESSAGE_CHAT_XPATH,
+                                            timeout=5).child(index=can_confirm[0])
+                _confirm_btn = _confirm_message.ele(locator='@@class=card-btn@@text()=同意')
+                click_element_by_ele(page, _confirm_btn)
                 continue
+            if chat_message_ele.ele(locator='@text()=方便发一份你的简历过来吗？', timeout=2):
+                print('当前已经请求简历，但对方未发送')
+                continue
+            page.actions.type('方便发一份你的简历过来吗？\n')
+            time.sleep(random.uniform(1.0, 1.5))
+            click_element(page,
+                          r'xpath://*[@id="container"]/div[1]/div/div[2]/div[2]/div[2]/div[1]/div[3]/div[1]/div[2]/div[1]/div[1]/span[1]')  # 求简历
+            time.sleep(random.uniform(0.5, 1.5))
+            click_element(page,
+                          r'xpath://*[@id="container"]/div[1]/div/div[2]/div[2]/div[2]/div[1]/div[3]/div[1]/div[2]/div[1]/div[1]/div/div/span[2]')  # 确认
+            print("求简历")
+        except Exception:
+            get_resume_key[key] = False
+            continue
 
 
 def wait_for_ele(page, xpath, funcs: list = None):
@@ -153,61 +155,104 @@ def passive_resume(page):
     :param page:
     :return:
     """
+    if page.url != URL_COMMUNICATION:
+        page.get(URL_COMMUNICATION)
+    wait_for_ele(page=page, xpath=r'xpath://*[@id="container"]/div[1]/div/div[2]/div[1]/div/div/div/div[2]',
+                 funcs=[if_not_selected_click])
+    wait_for_ele(page=page,
+                 xpath=r'xpath://*[@id="container"]/div[1]/div/div[2]/div[2]/div[1]/div[1]/div[2]/div/span[2]',
+                 funcs=[click_element_by_ele])  # 点击未读
+    time.sleep(random.uniform(1.0, 1.5))
+    get_resume_key = {}
+    list_first_ele = page.ele(
+        r'xpath://*[@id="container"]/div[1]/div/div[2]/div[2]/div[1]/div[2]/div/div[2]/div[1]')
+    if not list_first_ele:
+        with captcha_status['lock']:
+            if captcha_status['captcha_status']:
+                # 当前正在处理验证
+                return
+        print('当前消息列表为空')
+        return
+    index = 1
     while True:
-        wait_for_ele(page=page, xpath=r'xpath://*[@id="container"]/div[1]/div/div[2]/div[1]/div/div/div/div[2]',
-                     funcs=[if_not_selected_click])
+        with captcha_status['lock']:
+            if captcha_status['captcha_status']:
+                # 正在处理验证需要退出 重新进入
+                break
+        list_item_ele = page.ele(
+            r'xpath://*[@id="container"]/div[1]/div/div[2]/div[2]/div[1]/div[2]/div/div[2]/div[' + str(
+                index) + ']', timeout=5)
+        if not list_item_ele:
+            break
+        index += 1
+        key = list_item_ele.attr('key')
+        if key in get_resume_key:
+            print("已获取过该简历")
+            continue
+        try:
+            click_element_by_ele(page, list_item_ele)
+            get_resume_key[key] = True
+            chat_message_ele = page.s_ele(
+                MAIN_PAGE_COMMUNICATION_MESSAGE_CHAT_XPATH,
+                timeout=5)  # 获取消息框元素
+            if chat_message_ele.ele(locator='@class=message-dialog-icon resume-icon',
+                                    timeout=2) or chat_message_ele.ele(
+                locator='@text()=方便发一份你的简历过来吗？', timeout=2):
+                print("当前已获取简历，跳过")
+                continue
+            page.actions.type('方便发一份你的简历过来吗？\n')
+            time.sleep(random.uniform(1.0, 1.5))
+            click_element(page,
+                          r'xpath://*[@id="container"]/div[1]/div/div[2]/div[2]/div[2]/div[1]/div[3]/div[1]/div[2]/div[1]/div[1]/span[1]')  # 求简历
+            time.sleep(random.uniform(0.5, 1.5))
+            click_element(page,
+                          r'xpath://*[@id="container"]/div[1]/div/div[2]/div[2]/div[2]/div[1]/div[3]/div[1]/div[2]/div[1]/div[1]/div/div/span[2]')  # 确认
+            print("求简历")
+        except Exception:
+            get_resume_key[key] = False
+            continue
+
+
+def get_resume_in_had_resume(page, init_resume):
+    """
+    已获取简历 点击
+    :param page:
+    :param init_resume:
+    :return:
+    """
+    if page.url != URL_COMMUNICATION:
+        page.get(URL_COMMUNICATION)
+    wait_for_ele(page=page, xpath=r'@title=已获取简历',
+                 funcs=[if_not_selected_click])
+    if init_resume == 1:
         wait_for_ele(page=page,
                      xpath=r'xpath://*[@id="container"]/div[1]/div/div[2]/div[2]/div[1]/div[1]/div[2]/div/span[2]',
                      funcs=[click_element_by_ele])  # 点击未读
-        time.sleep(random.uniform(1.0, 1.5))
-        get_resume_key = {}
-        list_first_ele = page.ele(
-            r'xpath://*[@id="container"]/div[1]/div/div[2]/div[2]/div[1]/div[2]/div/div[2]/div[1]')
-        if not list_first_ele:
-            with captcha_status['lock']:
-                if captcha_status['captcha_status']:
-                    # 当前正在处理验证
-                    continue
-            print('当前消息列表为空')
-            continue
-        index = 1
-        while True:
-            with captcha_status['lock']:
-                if captcha_status['captcha_status']:
-                    # 正在处理验证需要退出 重新进入
-                    break
-            list_item_ele = page.ele(
-                r'xpath://*[@id="container"]/div[1]/div/div[2]/div[2]/div[1]/div[2]/div/div[2]/div[' + str(
-                    index) + ']', timeout=5)
-            if not list_item_ele:
+    list_first_ele = page.ele(
+        r'xpath://*[@id="container"]/div[1]/div/div[2]/div[2]/div[1]/div[2]/div/div[2]/div[1]')
+    if not list_first_ele:
+        with captcha_status['lock']:
+            if captcha_status['captcha_status']:
+                # 当前正在处理验证
+                return
+        print('当前消息列表为空')
+        return
+    index = 1
+    while True:
+        with captcha_status['lock']:
+            if captcha_status['captcha_status']:
+                # 正在处理验证需要退出 重新进入
                 break
-            index += 1
-            key = list_item_ele.attr('key')
-            if key in get_resume_key:
-                print("已获取过该简历")
-                continue
-            try:
-                click_element_by_ele(page, list_item_ele)
-                get_resume_key[key] = True
-                chat_message_ele = page.s_ele(
-                    MAIN_PAGE_COMMUNICATION_MESSAGE_CHAT_XPATH,
-                    timeout=5)  # 获取消息框元素
-                if chat_message_ele.ele(locator='@class=message-dialog-icon resume-icon',
-                                        timeout=2) or chat_message_ele.ele(
-                    locator='@text()=方便发一份你的简历过来吗？', timeout=2):
-                    print("当前已获取简历，跳过")
-                    continue
-                page.actions.type('方便发一份你的简历过来吗？\n')
-                time.sleep(random.uniform(1.0, 1.5))
-                click_element(page,
-                              r'xpath://*[@id="container"]/div[1]/div/div[2]/div[2]/div[2]/div[1]/div[3]/div[1]/div[2]/div[1]/div[1]/span[1]')  # 求简历
-                time.sleep(random.uniform(0.5, 1.5))
-                click_element(page,
-                              r'xpath://*[@id="container"]/div[1]/div/div[2]/div[2]/div[2]/div[1]/div[3]/div[1]/div[2]/div[1]/div[1]/div/div/span[2]')  # 确认
-                print("求简历")
-            except Exception:
-                get_resume_key[key] = False
-                continue
+        list_item_ele = page.ele(
+            r'xpath://*[@id="container"]/div[1]/div/div[2]/div[2]/div[1]/div[2]/div/div[2]/div[' + str(
+                index) + ']', timeout=5)
+        if not list_item_ele:
+            break
+        index += 1
+        try:
+            click_element_by_ele(page, list_item_ele)
+        except Exception:
+            continue
 
 
 @say_call_dialog_solve
@@ -238,6 +283,9 @@ def say_hello(page, person_input: list[int], job_input: list[list[str]], filter_
                 click_element(page=page, xpath=MAIN_PAGE_AWESOME_PERSON_JOB_LIST_FIRST_XPATH)  # 点击搜索结果的职位
                 if len(filter_input[i]) > 0 and filter_input[i][0] != '':
                     click_element(page=page, xpath=MAIN_PAGE_AWESOME_PERSON_FILTER_LABEL_XPATH)  # 点击筛选条件框
+                    _expand_filter = page.ele(locator=MAIN_PAGE_AWESOME_PERSON_FILTER_EXPAND, timeout=3)  # 获取 展开元素
+                    if _expand_filter:
+                        click_element_by_ele(page, _expand_filter)  # 如果需要展开则点击
                     _filter_wrap_ele = page.ele(locator=MAIN_PAGE_AWESOME_PERSON_FILTER_WRAP_XPATH,
                                                 timeout=5)  # 获取筛选界面容器元素
                     for _filter in filter_input[i]:
@@ -325,7 +373,7 @@ def close_message_information(page):
     wait_for_ele(page=page, xpath=MAIN_PAGE_AWESOME_PERSON_CHAT_XPATH, funcs=[click_element_by_ele])
     click_element(page=page, xpath=MAIN_PAGE_AWESOME_PERSON_CHAT_SETTING_XPATH)  # 点击设置
     _switch_ele = page.ele(locator=MAIN_PAGE_AWESOME_PERSON_CHAT_SETTING_CONTAINER_XPATH, timeout=5)  # 获取设置界面容器元素
-    if _switch_ele and _switch_ele.attr('class') == 'ui-switch ui-switch-checked':
+    if _switch_ele:
         click_element_by_ele(page, _switch_ele)
         print("已关闭消息提醒")
 
@@ -381,6 +429,9 @@ def get_filter_list(page):
     """
     result = []
     wait_for_ele(page=page, xpath=MAIN_PAGE_AWESOME_PERSON_FILTER_LABEL_XPATH, funcs=[click_element_by_ele])  # 点击筛选按钮
+    _expand_filter = page.ele(locator=MAIN_PAGE_AWESOME_PERSON_FILTER_EXPAND, timeout=3)  # 获取 展开元素
+    if _expand_filter:
+        click_element_by_ele(page, _expand_filter)  # 如果需要展开则点击
     result += get_filter_option_list(page, MAIN_PAGE_AWESOME_PERSON_FILTER_VIP_ITEM_XPATH_FORMAT)
     result += get_filter_option_list(page, MAIN_PAGE_AWESOME_PERSON_FILTER_FIX_VIP_ITEM_XPATH_FORMAT)
     result += get_filter_option_list(page, MAIN_PAGE_AWESOME_PERSON_FILTER_NORMAL_ITEM_XPATH_FORMAT)
@@ -419,8 +470,12 @@ def do_chain(page):
     close_message_information(page)  # 关闭消息提醒
     say_hello(page, _person_input, _job_input, _filter_input, _desired_input, _age_input)  # 第一步 打招呼
     page.get(URL_COMMUNICATION)
-    proactive_resume(page)  # 第二步 收取主动打招呼的简历
-    passive_resume(page)  # 第三步 处理新招呼 求简历
+    init_resume = 0
+    while True:
+        proactive_resume(page)  # 第二步 收取主动打招呼的简历
+        passive_resume(page)  # 第三步 处理新招呼 求简历
+        get_resume_in_had_resume(page, init_resume)
+        init_resume |= 1
 
 
 @deadline_decorator
