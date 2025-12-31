@@ -17,7 +17,7 @@ def _solve_over_say_hello_dialog(page, interrupt_check, stop_event):
     :return:
     """
     while not stop_event.is_set():
-        _dialog_ele = page.ele(locator=r'xpath:/html/body/div[6]', timeout=5)
+        _dialog_ele = page.ele(locator=r'@class=boss-popup__wrapper boss-dialog boss-dialog__wrapper business-block-dialog business-block-wrap circle', timeout=5)
         if _dialog_ele:
             print('超出打招呼总量限制')
             # 超出限制
