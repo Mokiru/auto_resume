@@ -23,7 +23,7 @@ def _solve_over_say_hello_dialog(page, interrupt_check, stop_event):
             # 超出限制
             interrupt_check['interrupt_check'] = True
             # 点击关闭
-            _close_btn_ele = _dialog_ele.ele(locator='xpath:div[1]/div[2]/i')
+            _close_btn_ele = _dialog_ele.ele(locator='@class=icon-close')
             if not _close_btn_ele:
                 print('未找到超出打招呼限制弹窗的关闭按钮')
                 break
