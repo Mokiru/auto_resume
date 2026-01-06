@@ -105,6 +105,40 @@ class MultiSelectDialog(simpledialog.Dialog):
             self.result.append(';'.join(selections))
 
 
+class ScrollableFrame(tk.Frame):
+    """
+    可滚动的框架类
+    """
+
+    def __init__(self, parent, *args, **kwargs):
+        tk.Frame.__init__(self, parent, *args, **kwargs)
+
+        # 创建Canvas和Scrollbar
+        self.canvas = tk.Canvas(self, highlightthickness=0)
+        self.scrollbar = tk.Scrollbar(self, orient="vertical", command=self.canvas.yview)
+        self.scrollable_frame = tk.Frame(self.canvas)
+
+        # 绑定滚动事件
+        self.scrollable_frame.bind(
+            "<Configure>",
+            lambda e: self.canvas.configure(scrollregion=self.canvas.bbox("all"))
+        )
+
+        # 在Canvas上创建窗口
+        self.canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
+        self.canvas.configure(yscrollcommand=self.scrollbar.set)
+
+        # 布局
+        self.canvas.pack(side="left", fill="both", expand=True)
+        self.scrollbar.pack(side="right", fill="y")
+
+        # 绑定鼠标滚轮事件
+        self.canvas.bind_all("<MouseWheel>", self._on_mousewheel)
+
+    def _on_mousewheel(self, event):
+        self.canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+
+
 class MixedInputDialog(simpledialog.Dialog):
     def __init__(self, parent, config_list, ok_text="确定", cancel_text="取消"):
         """
@@ -113,6 +147,7 @@ class MixedInputDialog(simpledialog.Dialog):
         - {'type': 'input', 'title': '输入框标题'}
         - {'type': 'multiselect', 'title': '多选框标题', 'choices': ['选项1', '选项2']}
         """
+        self.scroll_frame = None
         self.config_list = config_list
         self.controls = []
         self.ok_text = ok_text
@@ -120,24 +155,48 @@ class MixedInputDialog(simpledialog.Dialog):
         super().__init__(parent, title="混合输入对话框")
 
     def body(self, master):
+        self.scroll_frame = ScrollableFrame(master)
+        self.scroll_frame.grid(row=0, column=0, columnspan=2, sticky="nsew", padx=5, pady=5)
+        # 配置主窗口的权重
+        master.columnconfigure(1, weight=1)
+        master.rowconfigure(0, weight=1)
+
+        # 在滚动框架内创建控件
+        scrollable_master = self.scroll_frame.scrollable_frame
         for i, config in enumerate(self.config_list):
             # 创建标题标签
-            tk.Label(master, text=config['title']).grid(row=i, column=0, sticky="w", padx=5, pady=2)
+            tk.Label(scrollable_master, text=config['title']).grid(row=i, column=0, sticky="w", padx=5, pady=2)
 
             if config['type'] == 'input':
                 # 创建输入框
-                entry = tk.Entry(master, width=60)
+                entry = tk.Entry(scrollable_master, width=60)
                 entry.grid(row=i, column=1, padx=5, pady=2, sticky="ew")
                 self.controls.append(entry)
             elif config['type'] == 'multiselect':
                 # 创建多选列表框
-                listbox = tk.Listbox(master, selectmode=tk.MULTIPLE, width=60, height=6, exportselection=0)
+                listbox = tk.Listbox(scrollable_master, selectmode=tk.MULTIPLE, width=60, height=6, exportselection=0)
                 for choice in config['choices']:
                     listbox.insert(tk.END, choice)
                 listbox.grid(row=i, column=1, padx=5, pady=2, sticky="ew")
                 self.controls.append(listbox)
-
-            master.columnconfigure(1, weight=1)
+            elif config['type'] == 'select':
+                var = tk.StringVar()
+                frame = tk.Frame(scrollable_master)
+                if config['choices']:
+                    var.set(config['choices'][0])
+                for choice in config['choices']:
+                    rb = tk.Radiobutton(frame, text=choice, variable=var, value=choice)
+                    rb.pack(anchor='w')
+                frame.grid(row=i, column=1, padx=5, pady=2, sticky="w")
+                self.controls.append(var)
+            elif config['type'] == 'checkbox':
+                var = tk.BooleanVar()
+                # 支持直接使用 text 属性或 choices[0] 作为显示文本
+                text = config.get('text', config['choices'][0] if config.get('choices') else "选项")
+                cb = tk.Checkbutton(scrollable_master, text=text, variable=var, onvalue=True, offvalue=False)
+                cb.grid(row=i, column=1, padx=5, pady=2, sticky="w")
+                self.controls.append(var)
+            scrollable_master.columnconfigure(1, weight=1)
 
         return self.controls[0] if self.controls else None
 
@@ -164,6 +223,11 @@ class MixedInputDialog(simpledialog.Dialog):
             elif config['type'] == 'multiselect':
                 selections = [control.get(j) for j in control.curselection()]
                 self.result.append(';'.join(selections))
+            elif config['type'] == 'select':
+                self.result.append(control.get())
+            elif config['type'] == 'checkbox':
+                # 勾选框返回 True 或 False
+                self.result.append(str(control.get()))
 
 
 def popup_multiple_inputs(prompts: list[str]) -> list[str] | None:
