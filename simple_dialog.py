@@ -139,6 +139,82 @@ class ScrollableFrame(tk.Frame):
         self.canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
 
 
+class SearchableSelectDialog(simpledialog.Dialog):
+    def __init__(self, parent, title, choices, ok_text='确定', cancel_text='取消'):
+        self.title = title
+        self.choices = choices
+        self.ok_text = ok_text
+        self.cancel_text = cancel_text
+        self.search_var = tk.StringVar()
+        self.selected_value = None
+        super().__init__(parent, title="搜索选择")
+
+    def body(self, master):
+        # 标题标签
+        tk.Label(master, text=self.title).pack(pady=5)
+
+        # 搜索框
+        search_frame = tk.Frame(master)
+        search_frame.pack(pady=5, fill=tk.X)
+
+        self.search_entry = tk.Entry(search_frame, textvariable=self.search_var)
+        self.search_entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
+
+        # 选项列表
+        self.listbox = tk.Listbox(master, height=10, exportselection=0)
+        for choice in self.choices:
+            self.listbox.insert(tk.END, choice)
+        self.listbox.pack(pady=5, fill=tk.BOTH, expand=True)
+
+        # 绑定搜索事件
+        self.search_var.trace('w', self.filter_choices)
+        self.listbox.bind('<<ListboxSelect>>', self.on_select)
+
+        # 设置焦点
+        self.search_entry.focus()
+
+        return self.search_entry
+
+    def filter_choices(self, *args):
+        """根据搜索内容过滤选项"""
+        search_term = self.search_var.get().lower()
+        self.listbox.delete(0, tk.END)
+
+        # 显示匹配的选项
+        for choice in self.choices:
+            if search_term in choice.lower():
+                self.listbox.insert(tk.END, choice)
+
+    def on_select(self, event):
+        """处理选项选择"""
+        selection = self.listbox.curselection()
+        if selection:
+            index = selection[0]
+            self.selected_value = self.listbox.get(index)
+
+    def buttonbox(self):
+        """创建自定义按钮"""
+        box = tk.Frame(self)
+
+        w = tk.Button(box, text=self.ok_text, width=10, command=self.ok, default=tk.ACTIVE)
+        w.pack(side=tk.LEFT, padx=5, pady=5)
+        w = tk.Button(box, text=self.cancel_text, width=10, command=self.cancel)
+        w.pack(side=tk.LEFT, padx=5, pady=5)
+
+        self.bind("<Return>", self.ok)
+        self.bind("<Escape>", self.cancel)
+
+        box.pack()
+
+    def apply(self):
+        """应用结果"""
+        if self.selected_value:
+            self.result = self.selected_value
+        else:
+            # 如果没有选择，返回搜索框中的内容
+            self.result = self.search_var.get()
+
+
 class MixedInputDialog(simpledialog.Dialog):
     def __init__(self, parent, config_list, ok_text="确定", cancel_text="取消"):
         """
@@ -196,6 +272,51 @@ class MixedInputDialog(simpledialog.Dialog):
                 cb = tk.Checkbutton(scrollable_master, text=text, variable=var, onvalue=True, offvalue=False)
                 cb.grid(row=i, column=1, padx=5, pady=2, sticky="w")
                 self.controls.append(var)
+            elif config['type'] == 'searchable_select':
+                # 搜索框
+                frame = tk.Frame(scrollable_master)
+                search_var = tk.StringVar()
+                search_entry = tk.Entry(frame, textvariable=search_var, width=60)
+                search_entry.pack(fill=tk.X)
+
+                # 选项列表
+                listbox = tk.Listbox(frame, height=6, exportselection=0)
+                for choice in config['choices']:
+                    listbox.insert(tk.END, choice)
+                listbox.pack(fill=tk.BOTH, expand=True, pady=(5, 0))
+
+                # 绑定搜索事件
+                def create_filter_func(search_var, listbox, choices):
+                    def filter_choices(*args):
+                        search_term = search_var.get().lower()
+                        listbox.delete(0, tk.END)
+                        for choice in choices:
+                            if search_term in choice.lower():
+                                listbox.insert(tk.END, choice)
+
+                    return filter_choices
+
+                search_var.trace('w', create_filter_func(search_var, listbox, config['choices']))
+
+                # 存储控件和关联数据
+                control_container = {
+                    'type': 'searchable_select',
+                    'search_var': search_var,
+                    'listbox': listbox,
+                    'choices': config['choices'],
+                    'selected_value': None
+                }
+
+                # 绑定选择事件
+                def on_select(event, container=control_container):
+                    selection = container['listbox'].curselection()
+                    if selection:
+                        index = selection[0]
+                        container['selected_value'] = container['listbox'].get(index)
+
+                listbox.bind('<<ListboxSelect>>', on_select)
+                frame.grid(row=i, column=1, padx=5, pady=2, sticky="ew")
+                self.controls.append(control_container)
             scrollable_master.columnconfigure(1, weight=1)
 
         return self.controls[0] if self.controls else None
@@ -228,6 +349,13 @@ class MixedInputDialog(simpledialog.Dialog):
             elif config['type'] == 'checkbox':
                 # 勾选框返回 True 或 False
                 self.result.append(str(control.get()))
+            elif config['type'] == 'searchable_select':
+                # 处理可搜索选择框
+                if control['selected_value']:
+                    self.result.append(control['selected_value'])
+                else:
+                    # 如果没有选择，返回搜索框中的内容
+                    self.result.append(control['search_var'].get())
 
 
 def popup_multiple_inputs(prompts: list[str]) -> list[str] | None:
