@@ -1,4 +1,5 @@
 import os
+import random
 import threading
 import time
 import traceback
@@ -10,33 +11,40 @@ from simple_dialog import get_global_root, safe_gui_call, popup_input, popup_mix
 from timer_function_decorator import deadline_decorator
 
 # 筛选项
-JOB_SELECT_CHOICES = ['全部职位', '目前职位', '过往职位']
-COMPANY_SELECT_CHOICES = ['全部公司', '目前公司', '过往公司']
-EXPERIENCE_CHOICES = ['不限', '在校/应届', '1-3年', '3-5年', '5-10年', '自定义']
-EDUCATION_CHOICES = ['不限', '本科', '硕士', '博士/博士后', '大专', '中专/中技', '高中及以下']
-UNIFIED_RECRUITMENT_REQUIREMENT_CHOICES = ['不限', '统招本科', '统招硕士', '统招博士', '统招大专']
-UNIVERSITY_REQUIREMENT_CHOICES = ['不限', '211', '985', '双一流', '海外留学']
-ACTIVE_STATUS_CHOICES = ['不限', '今天活跃', '3天内活跃', '7天内活跃', '30天内活跃', '最近三个月活跃', '最近半年活跃']
-JOB_HUNTING_CHOICES = ['不限', '离职，正在找工作', '在职，急寻新工作', '在职，看看新机会', '在职，暂无跳槽打算']
-FREQUENCY_OF_JOB_HOPPING_CHOICES = ['不限', '近5年不超过3段', '近3年不超过2段', '近2段均不低于2年']
-AGE_REQUIREMENT_CHOICES = ['不限', '20-25岁', '25-30岁', '30-35岁', '35-40岁', '40岁以上', '自定义']
-SEX_REQUIREMENT_CHOICES = ['不限', '男', '女']
-LANGUAGE_REQUIREMENT_CHOICES = ['不限', '英语', '日语', '粤语', '其他']
-GRADUATION_YEAR_CHOICES = ['不限', '2025年毕业', '2026年毕业', '2027年毕业', '2028年毕业', '2029年毕业', '2030年毕业']
-CURRENT_ANNUAL_SALARY_CHOICES = ['不限', '5万以下', '5-10万', '10-20万', '20-30万', '30-40万', '40-50万', '50-65万',
+JOB_SELECT_CHOICES = ['不选择', '全部职位', '目前职位', '过往职位']
+COMPANY_SELECT_CHOICES = ['不选择', '全部公司', '目前公司', '过往公司']
+EXPERIENCE_CHOICES = ['不选择', '不限', '在校/应届', '1-3年', '3-5年', '5-10年', '自定义']
+EDUCATION_CHOICES = ['不选择', '不限', '本科', '硕士', '博士/博士后', '大专', '中专/中技', '高中及以下']
+UNIFIED_RECRUITMENT_REQUIREMENT_CHOICES = ['不选择', '不限', '统招本科', '统招硕士', '统招博士', '统招大专']
+UNIVERSITY_REQUIREMENT_CHOICES = ['不选择', '不限', '211', '985', '双一流', '海外留学']
+ACTIVE_STATUS_CHOICES = ['不选择', '不限', '今天活跃', '3天内活跃', '7天内活跃', '30天内活跃', '最近三个月活跃',
+                         '最近半年活跃']
+JOB_HUNTING_CHOICES = ['不选择', '不限', '离职，正在找工作', '在职，急寻新工作', '在职，看看新机会', '在职，暂无跳槽打算']
+FREQUENCY_OF_JOB_HOPPING_CHOICES = ['不选择', '不限', '近5年不超过3段', '近3年不超过2段', '近2段均不低于2年']
+AGE_REQUIREMENT_CHOICES = ['不选择', '不限', '20-25岁', '25-30岁', '30-35岁', '35-40岁', '40岁以上', '自定义']
+SEX_REQUIREMENT_CHOICES = ['不选择', '不限', '男', '女']
+LANGUAGE_REQUIREMENT_CHOICES = ['不选择', '不限', '英语', '日语', '粤语', '其他']
+GRADUATION_YEAR_CHOICES = ['不选择', '不限', '2025年毕业', '2026年毕业', '2027年毕业', '2028年毕业', '2029年毕业',
+                           '2030年毕业']
+CURRENT_ANNUAL_SALARY_CHOICES = ['不选择', '不限', '5万以下', '5-10万', '10-20万', '20-30万', '30-40万', '40-50万',
+                                 '50-65万',
                                  '65-80万',
                                  '80-100万', '100万以上', '自定义']
-EXPECTATION_ANNUAL_SALARY_CHOICES = ['不限', '5万以下', '5-10万', '10-20万', '20-30万', '30-40万', '40-50万', '50-65万',
+EXPECTATION_ANNUAL_SALARY_CHOICES = ['不选择', '不限', '5万以下', '5-10万', '10-20万', '20-30万', '30-40万', '40-50万',
+                                     '50-65万',
                                      '65-80万',
                                      '80-100万', '100万以上', '自定义']
-RESUME_LANGUAGE_CHOICES = ['不限', '中文简历', '英文简历']
-NATURE_OF_THE_COMPANY_CHOICES = ['不限', '外商独资/外企办事处', '中外合营(合资/合作)', '私营/民营企业', '国有企业',
+RESUME_LANGUAGE_CHOICES = ['不选择', '不限', '中文简历', '英文简历']
+NATURE_OF_THE_COMPANY_CHOICES = ['不选择', '不限', '外商独资/外企办事处', '中外合营(合资/合作)', '私营/民营企业',
+                                 '国有企业',
                                  '国内上市公司', '政府机关／非盈利机构', '事业单位', '其他']
+COMMUNICATION_STATUS_CHOICES = ['不选择', '不限', '隐藏我已沟通', '隐藏我和同事已沟通']
+CONTACT_STATUS_CHOICES = ['不选择', '不限', '隐藏我已获取联系方式', '隐藏我和同事已获取联系方式']
 
 URL_LOGIN = 'https://lpt.liepin.com'
 URL_SEARCH_PERSON = 'https://lpt.liepin.com/search'
 URL_JOB_MANAGEMENT = 'https://lpt.liepin.com/job/manager'
-SEARCH_PERSON_FILTER_WRAP_CLASS = r'@class=wrap--bbDaK'  # 筛选栏class
+SEARCH_PERSON_FILTER_WRAP_CLASS = r'@|class=wrap--bbDaK@|class=wrap--bbDaK submited'  # 筛选栏class
 SEARCH_PERSON_FILTER_CLICK_ATTACH_FILTER_WRAP_XPATH = r'xpath:/div[3]'  # 在筛选栏中的筛选项wrap 相对xpath
 SEARCH_PERSON_FILTER_SEARCH_BOX_ATTACH_XPATH = r'xpath:/div[2]/div/div/div/div/div[3]/div/input'  # 搜索栏
 SEARCH_PERSON_FILTER_SEARCH_BOX_CONFIRM_ATTACH_XPATH = r'xpath:/div[2]/div/div/div/button'  # 开始搜索
@@ -64,7 +72,7 @@ SEARCH_PERSON_FILTER_FUNCTION_INPUT_ATTACH_XPATH = r'xpath:/div[2]/div/section/d
 SEARCH_PERSON_FILTER_FUNCTION_FIRST_ITEM_ATTACH_XPATH = r'xpath:/div[2]/div/section/div[1]/div/div[2]/div/ul/li[1]'  # 列表第一个
 SEARCH_PERSON_FILTER_DIALOG_FUNCTION_CONFIRM_ATTACH_XPATH = r'xpath:/div[2]/div/section/div[4]/div[2]/div[2]/div[2]/button'  # 职能dialog确认按钮
 
-SEARCH_PERSON_FILTER_EXPERIENCE_ATTACH_XPATH_PATTERN = r'xpath:/div[3]/div[4]/div/div/label[{0}]'  # 经验筛选项 相对xpath模板 format选中项下标 + 1
+SEARCH_PERSON_FILTER_EXPERIENCE_ATTACH_XPATH_PATTERN = r'xpath:/div[3]/div[4]/div/div/label[{0}]'  # 经验筛选项 相对xpath模板 format选中项下标
 SEARCH_PERSON_FILTER_EXPERIENCE_ATTACH_CUSTOM_LEFT_INPUT_XPATH = r'xpath:/div[3]/div[4]/div/div/div/div[2]/div/span[1]/span/input'  # 自定义经验左侧输入框
 SEARCH_PERSON_FILTER_EXPERIENCE_ATTACH_CUSTOM_RIGHT_INPUT_XPATH = r'xpath:/div[3]/div[4]/div/div/div/div[2]/div/span[2]/span/input'  # 自定义经验右侧输入框
 SEARCH_PERSON_FILTER_EDUCATION_ATTACH_XPATH_PATTERN = r'xpath:/div[3]/div[5]/div/div/label[{0}]'  # 教育经历筛选项 相对xpath模板 format选中项下标+1
@@ -112,13 +120,25 @@ SEARCH_PERSON_FILTER_GRADUATION_UNIVERSITY_INPUT_ATTACH_XPATH = r'xpath:/div[3]/
 SEARCH_PERSON_FILTER_RESET_SEARCH_ATTACH_XPATH = r'xpath:/span'  # 重置条件按钮 相对xpath
 
 SEARCH_PERSON_COMMUNICATION_LIST_ITEM_XPATH_PATTERN = r'xpath://*[@id="main-container"]/section/section/main/div/div[1]/div[5]/ul/li[{0}]'  # 列表元素xpath模板
-SEARCH_PERSON_COMMUNICATION_DIALOG_LOCATION = r'@@role=dialog@@aira-labelledby=rc_unique_3@@aria-modal=true@@class=ant-lpt-modal'  # 沟通dialog
+SEARCH_PERSON_COMMUNICATION_DIALOG_LOCATION = r'@@role=dialog@@aria-modal=true@@class=ant-lpt-modal'  # 沟通dialog
 SEARCH_PERSON_COMMUNICATION_DIALOG_SEARCH_INPUT_ATTACH_XPATH = r'xpath:/div[2]/div[2]/div/span/input'  # 沟通dialog中 搜索框 相对xpath
+SEARCH_PERSON_COMMUNICATION_DIALOG_LIST_XPATH = r'xpath:/div[2]/div[2]/div/div/div/div/ul/div/*'  # 职位列表 相对xpath模板
 SEARCH_PERSON_COMMUNICATION_DIALOG_LIST_ITEM_XPATH_PATTERN = r'xpath:/div[2]/div[2]/div/div/div/div/ul/div/li[{0}]'  # 职位列表 相对xpath模板
 SEARCH_PERSON_COMMUNICATION_DIALOG_ITEM_JOB_NAME_ATTACH_XPATH = r'xpath:/p[1]/strong'  # 职位名称 相对列表元素xpath
-SEARCH_PERSON_COMMUNICATION_DIALOG_ITEM_JOB_LOC_ATTACH_XPATH = r'xpath:/p[2]/span[1]/'  # 职位地点 相对列表元素xpath
+SEARCH_PERSON_COMMUNICATION_DIALOG_ITEM_JOB_LOC_ATTACH_XPATH = r'xpath:/p[2]/span[1]'  # 职位地点 相对列表元素xpath
 SEARCH_PERSON_COMMUNICATION_DIALOG_CONFIRM_ATTACH_XPATH = r'xpath:/div[2]/div[3]/button[2]'  # 确定按钮 相对xpath
 SEARCH_PERSON_COMMUNICATION_DIALOG_CANCEL_ATTACH_XPATH = r'xpath:/div[2]/div[3]/button[1]'  # 取消按钮 相对xpath
+
+SEARCH_PERSON_COMMUNICATION_CONTINUE_COMMUNICATION_MASK_LOCATION = r'@class=ant-im-drawer ant-im-drawer-right no-mask ant-im-teno-drawer ant-im-drawer-open'
+SEARCH_PERSON_COMMUNICATION_CONTINUE_COMMUNICATION_CLOSE_ATTACH_XPATH = r'xpath:/div[2]/div/div/div[1]/div/button'  # 相对xpath 关闭按钮
+
+SEARCH_PERSON_SEARCHED_COMMUNICATION_STATUS_SELECT_ATTACH_XPATH = r'xpath:/div[4]/section/div[4]/div[1]'  # 沟通状态 相对all-wrap xpath
+SEARCH_PERSON_SEARCHED_CONTACT_STATUS_SELECT_ATTACH_XPATH = r'xpath:/div[4]/section/div[4]/div[2]'  # 获取联系方式状态 相对xpath
+SEARCH_PERSON_SEARCHED_HIDE_CHECKBOX_ATTACH_XPATH = r'xpath:/div[4]/section/div[4]/label'  # 是否隐藏已经查看 相对xpath
+SEARCH_PERSON_SEARCHED_HIDE_CHECKBOX_CHECKED_CLASS = r'ant-lpt-checkbox-wrapper ant-lpt-checkbox-wrapper-checked'  # 选中状态class
+SEARCH_PERSON_SEARCHED_MATCH_RECENT_CHECKBOX_ATTACH_XPATH = r'xpath:/div[4]/section/label'  # 是否只匹配最近一段工作
+SEARCH_PERSON_SEARCHED_MATCH_RECENT_CHECKBOX_CHECKED_CLASS = r'ant-lpt-checkbox-wrapper ant-lpt-checkbox-wrapper-checked'  # 选中状态class
+
 SEARCH_PERSON_COMMUNICATION_LIST_NEXT_PAGE_LOCATION = r'@title=下一页'
 # 全局查询
 SEARCH_PERSON_FILTER_SELECT_PATTERN_LOCATION = r'@title={0}'
@@ -250,7 +270,6 @@ def _popup_click_ele(page, locator: str):
     :param locator: 目标选择器 会在下拉框元素中搜索
     :return:
     """
-    print(locator)
     _popup_ele = page.ele(locator=SEARCH_PERSON_FILTER_SELECT_LIST_ANCHOR_LOCATION)  # 获取弹窗
     if _popup_ele:
         _scroll_ele = _popup_ele.ele(locator=SEARCH_PERSON_FILTER_LIST_HOLDER_ATTACH_XPATH, timeout=3)  # 滑动条
@@ -258,19 +277,17 @@ def _popup_click_ele(page, locator: str):
             for i in range(4):
                 _target_ele = _popup_ele.ele(locator=locator, timeout=2)
                 if _target_ele:
-                    print('有滑动条下的点击')
                     click_element_by_ele(page, _target_ele)
                     break
                 else:
-                    print('未找到目标元素')
+                    print('滑动条点击下，未找到目标元素')
                 page.actions.hold(_scroll_ele).move(0, 30).release()
         else:
             _target_ele = _popup_ele.ele(locator=locator, timeout=2)
             if _target_ele:
-                print('无滑动条下的点击')
                 click_element_by_ele(page, _target_ele)
             else:
-                print('未找到目标元素')
+                print('无滑动条下，未找到目标元素')
 
 
 def say_hello(page, job_list):
@@ -325,6 +342,10 @@ def say_hello(page, job_list):
     _professional = []
     _graduation_university = []
     _communication_job = []
+    _communication_status = []
+    _contact_status = []
+    _hide_looked = []
+    _match_latest = []
     _all_lists = [
         _person_say_num, _search_txt, _person_job, _person_job_select, _person_company, _person_company_select,
         _fast_search, _current_city, _expectation_city, _experience, _custom_experience,
@@ -378,55 +399,62 @@ def say_hello(page, job_list):
             {'type': 'checkbox', 'title': '', 'text': '海外工作'},
             {'type': 'input', 'title': '专业名称'},
             {'type': 'input', 'title': '毕业院校'},
-            {'type': 'searchable_select', 'title': '沟通职位', 'choices': job_list}
+            {'type': 'searchable_select', 'title': '沟通职位', 'choices': job_list},
+            {'type': 'select', 'title': '沟通状态', 'choices': COMPANY_SELECT_CHOICES},
+            {'type': 'select', 'title': '获取联系方式状态', 'choices': CONTACT_STATUS_CHOICES},
         ], '确认', '停止选择')
         if not result:
             break
         _iter_idx += 1
         for lst, val in zip(_all_lists, result):
             lst.append(val)
-    _filter_wrap_ele = page.ele(SEARCH_PERSON_FILTER_WRAP_CLASS).ele(
-        SEARCH_PERSON_FILTER_CLICK_ATTACH_FILTER_WRAP_XPATH)
-    _search_txt_ele = page.ele(SEARCH_PERSON_FILTER_WRAP_CLASS).ele(
-        SEARCH_PERSON_FILTER_SEARCH_BOX_ATTACH_XPATH)
     for _idx in range(_iter_idx):
+        _all_wrap_ele = page.ele(SEARCH_PERSON_FILTER_WRAP_CLASS)
+        _filter_wrap_ele = _all_wrap_ele.ele(
+            SEARCH_PERSON_FILTER_CLICK_ATTACH_FILTER_WRAP_XPATH)
+        _search_txt_ele = _all_wrap_ele.ele(
+            SEARCH_PERSON_FILTER_SEARCH_BOX_ATTACH_XPATH)
         _current_job_name, _current_job_loc = _communication_job[_idx].split(',')
         _reset_search_ele = _filter_wrap_ele.ele(SEARCH_PERSON_FILTER_RESET_SEARCH_ATTACH_XPATH, timeout=3)
+        _is_fast_search = False
         if not _reset_search_ele:
             print('未找到重置条件元素')
             continue
         click_element_by_ele(page, _reset_search_ele)  # 点击重置条件
         # 快捷搜索
         if _fast_search[_idx] != '不选择':
-            _fast_idx = _fast_search_txt_list.index(_fast_search[_idx]) + 1
+            _fast_idx = _fast_search_txt_list.index(_fast_search[_idx])
             _fast_search_ele = _filter_wrap_ele.ele(
                 SEARCH_PERSON_FILTER_FAST_SEARCH_ATTACH_XPATH_PATTERN.format(_fast_idx), timeout=3)
             if not _fast_search_ele:
                 print(f'未找到对应快捷搜索项{_fast_search[_idx]}')
                 continue
+            _is_fast_search = True
             click_element_by_ele(page, _fast_search_ele)
         # 职位
         if _person_job[_idx] != '':
             _job_input_ele = _filter_wrap_ele.ele(SEARCH_PERSON_FILTER_JOB_INPUT_ATTACH_XPATH, timeout=3)
             click_element_by_ele(page, _job_input_ele)  # 点击输入框
             page.actions.type(_person_job[_idx])
-            _job_select_ele = _filter_wrap_ele.ele(SEARCH_PERSON_FILTER_JOB_SELECT_ATTACH_XPATH, timeout=1)
-            click_element_by_ele(page, _job_select_ele)  # 点击选择框
-            _target_select_ele = page.ele(
-                SEARCH_PERSON_FILTER_SELECT_PATTERN_LOCATION.format(_person_job_select[_idx]), timeout=2)
-            if _target_select_ele:
-                click_element_by_ele(page, _target_select_ele)  # 只有存在才点击，因为可能是当前选中项，则不需要点击
+            if _person_job_select[_idx] != '不选择':
+                _job_select_ele = _filter_wrap_ele.ele(SEARCH_PERSON_FILTER_JOB_SELECT_ATTACH_XPATH, timeout=1)
+                click_element_by_ele(page, _job_select_ele)  # 点击选择框
+                _target_select_ele = page.ele(
+                    SEARCH_PERSON_FILTER_SELECT_PATTERN_LOCATION.format(_person_job_select[_idx]), timeout=2)
+                if _target_select_ele:
+                    click_element_by_ele(page, _target_select_ele)  # 只有存在才点击，因为可能是当前选中项，则不需要点击
         # 公司
         if _person_company[_idx] != '':
             _company_input_ele = _filter_wrap_ele.ele(SEARCH_PERSON_FILTER_COMPANY_INPUT_ATTACH_XPATH, timeout=3)
             click_element_by_ele(page, _company_input_ele)  # 点击输入框
             page.actions.type(_person_company[_idx])
-            _company_select_ele = _filter_wrap_ele.ele(SEARCH_PERSON_FILTER_COMPANY_SELECT_ATTACH_XPATH, timeout=1)
-            click_element_by_ele(page, _company_select_ele)  # 点击选择框
-            _target_select_ele = page.ele(
-                SEARCH_PERSON_FILTER_SELECT_PATTERN_LOCATION.format(_person_company_select[_idx]), timeout=2)
-            if _target_select_ele:
-                click_element_by_ele(page, _target_select_ele)  # 只有存在才点击，因为可能是当前选中项，则不需要点击
+            if _person_company_select[_idx] != '不选择':
+                _company_select_ele = _filter_wrap_ele.ele(SEARCH_PERSON_FILTER_COMPANY_SELECT_ATTACH_XPATH, timeout=1)
+                click_element_by_ele(page, _company_select_ele)  # 点击选择框
+                _target_select_ele = page.ele(
+                    SEARCH_PERSON_FILTER_SELECT_PATTERN_LOCATION.format(_person_company_select[_idx]), timeout=2)
+                if _target_select_ele:
+                    click_element_by_ele(page, _target_select_ele)  # 只有存在才点击，因为可能是当前选中项，则不需要点击
         # 目前城市
         if _current_city[_idx] != '':
             _more_option_ele = _filter_wrap_ele.ele(SEARCH_PERSON_FILTER_CURRENT_CITY_ATTACH_XPATH, timeout=3)
@@ -467,48 +495,54 @@ def say_hello(page, job_list):
                     _confirm_btn_ele = _search_city_dialog_ele.ele(SEARCH_PERSON_FILTER_DIALOG_CONFIRM_ATTACH_XPATH)
                     if _confirm_btn_ele:
                         click_element_by_ele(page, _confirm_btn_ele)
-        _experience_ele = _filter_wrap_ele.ele(
-            SEARCH_PERSON_FILTER_EXPERIENCE_ATTACH_XPATH_PATTERN.format(
-                EXPERIENCE_CHOICES.index(_experience[_idx]) + 1),
-            timeout=3)  # 经验筛选项
-        # 经验
-        if _experience_ele:
-            if _experience_ele.attr('class') != 'searchPageFilterItem--S_vZI searchPageFilterItemActive--cW0cC':
-                click_element_by_ele(page, _experience_ele)
-            if _experience[_idx] == '自定义':
-                # 需要输入经验
-                _begin, _end = _custom_experience[_idx].split('-')
-                _begin_input_ele = _filter_wrap_ele.ele(SEARCH_PERSON_FILTER_EXPERIENCE_ATTACH_CUSTOM_LEFT_INPUT_XPATH,
-                                                        timeout=1)
-                click_element_by_ele(page, _begin_input_ele)
-                page.actions.type(_begin)
-                _end_input_ele = _filter_wrap_ele.ele(SEARCH_PERSON_FILTER_EXPERIENCE_ATTACH_CUSTOM_RIGHT_INPUT_XPATH,
-                                                      timeout=1)
-                click_element_by_ele(page, _end_input_ele)
-                page.actions.type(_end)
+        if _experience[_idx] != '不选择':
+            _experience_ele = _filter_wrap_ele.ele(
+                SEARCH_PERSON_FILTER_EXPERIENCE_ATTACH_XPATH_PATTERN.format(
+                    EXPERIENCE_CHOICES.index(_experience[_idx])),
+                timeout=3)  # 经验筛选项
+            # 经验
+            if _experience_ele:
+                if _experience_ele.attr('class') != 'searchPageFilterItem--S_vZI searchPageFilterItemActive--cW0cC':
+                    click_element_by_ele(page, _experience_ele)
+                if _experience[_idx] == '自定义':
+                    # 需要输入经验
+                    _begin, _end = _custom_experience[_idx].split('-')
+                    _begin_input_ele = _filter_wrap_ele.ele(
+                        SEARCH_PERSON_FILTER_EXPERIENCE_ATTACH_CUSTOM_LEFT_INPUT_XPATH,
+                        timeout=1)
+                    click_element_by_ele(page, _begin_input_ele)
+                    page.actions.type(_begin)
+                    _end_input_ele = _filter_wrap_ele.ele(
+                        SEARCH_PERSON_FILTER_EXPERIENCE_ATTACH_CUSTOM_RIGHT_INPUT_XPATH,
+                        timeout=1)
+                    click_element_by_ele(page, _end_input_ele)
+                    page.actions.type(_end)
         # 教育经历
-        if _education_experience[_idx] != '':
+        if _education_experience[_idx] != '' and _education_experience[_idx] != '不选择':
             _education_experience_list = _education_experience[_idx].split(';')
             for _education_experience_item in _education_experience_list:
                 _education_experience_ele = _filter_wrap_ele.ele(
                     SEARCH_PERSON_FILTER_EDUCATION_ATTACH_XPATH_PATTERN.format(
-                        EDUCATION_CHOICES.index(_education_experience_item) + 1), timeout=2)  # 教育经历筛选项
+                        EDUCATION_CHOICES.index(_education_experience_item)), timeout=2)  # 教育经历筛选项
                 if _education_experience_ele:
                     click_element_by_ele(page, _education_experience_ele)
         # 统招要求
-        _unified_requirement_ele = _filter_wrap_ele.ele(SEARCH_PERSON_FILTER_UNIFIED_ATTACH_XPATH, timeout=2)  # 统招要求选择框
-        if _unified_requirement_ele:
-            click_element_by_ele(page, _unified_requirement_ele)  # 点击选择框
-            _popup_click_ele(page, SEARCH_PERSON_FILTER_SELECT_PATTERN_LOCATION.format(
-                '[object Object]' if _unified_recruitment_requirement[_idx] == '不限' else
-                _unified_recruitment_requirement[_idx]))
+        if _unified_recruitment_requirement[_idx] != '不选择':
+            _unified_requirement_ele = _filter_wrap_ele.ele(SEARCH_PERSON_FILTER_UNIFIED_ATTACH_XPATH,
+                                                            timeout=2)  # 统招要求选择框
+            if _unified_requirement_ele:
+                click_element_by_ele(page, _unified_requirement_ele)  # 点击选择框
+                _popup_click_ele(page, SEARCH_PERSON_FILTER_SELECT_PATTERN_LOCATION.format(
+                    '[object Object]' if _unified_recruitment_requirement[_idx] == '不限' else
+                    _unified_recruitment_requirement[_idx]))
         # 院校要求
-        _university_requirement_ele = _filter_wrap_ele.ele(SEARCH_PERSON_FILTER_UNIVERSITY_ATTACH_XPATH,
-                                                           timeout=2)  # 院校要求选择框
-        if _university_requirement_ele:
-            click_element_by_ele(page, _university_requirement_ele)  # 点击选择框
-            _popup_click_ele(page, SEARCH_PERSON_FILTER_SELECT_PATTERN_LOCATION.format(
-                '[object Object]' if _university_requirement[_idx] == '不限' else _university_requirement[_idx]))
+        if _university_requirement[_idx] != '不选择':
+            _university_requirement_ele = _filter_wrap_ele.ele(SEARCH_PERSON_FILTER_UNIVERSITY_ATTACH_XPATH,
+                                                               timeout=2)  # 院校要求选择框
+            if _university_requirement_ele:
+                click_element_by_ele(page, _university_requirement_ele)  # 点击选择框
+                _popup_click_ele(page, SEARCH_PERSON_FILTER_SELECT_PATTERN_LOCATION.format(
+                    '[object Object]' if _university_requirement[_idx] == '不限' else _university_requirement[_idx]))
         # 更多条件
         _more_filter_ele = page.ele(SEARCH_PERSON_FILTER_MORE_FILTER_CLASS, timeout=2)
         if _more_filter_ele:
@@ -517,6 +551,7 @@ def say_hello(page, job_list):
         for _pair in _common_select_filter_idx:
             _lst_idx = _pair[0]
             _lst = _all_lists[_pair[1]]
+            if _lst[_idx] == '不选择': continue
             _select_ele = _filter_wrap_ele.ele(
                 SEARCH_PERSON_FILTER_MORE_FILTER_SELECT_ATTACH_XPATH_PATTERN.format(_lst_idx), timeout=2)
             if _select_ele:
@@ -525,7 +560,7 @@ def say_hello(page, job_list):
                     '[object Object]' if _lst[_idx] == '不限' else _lst[_idx]))
         # 有自定义的选项
         # 年龄
-        if _age_requirement[_idx] != '':
+        if _age_requirement[_idx] != '' and _age_requirement[_idx] != '不选择':
             _select_ele = _filter_wrap_ele.ele(SEARCH_PERSON_FILTER_AGR_REQUIREMENT_SELECT_ATTACH_XPATH, timeout=2)
             if _select_ele:
                 click_element_by_ele(page, _select_ele)
@@ -544,7 +579,7 @@ def say_hello(page, job_list):
                     click_element_by_ele(page, _right_input_ele)
                     page.actions.type(_end)
         # 语言
-        if _language_requirement[_idx] != '':
+        if _language_requirement[_idx] != '' and _language_requirement[_idx] != '不选择':
             _select_ele = _filter_wrap_ele.ele(SEARCH_PERSON_FILTER_LANGUAGE_REQUIREMENT_SELECT_ATTACH_XPATH, timeout=2)
             if _select_ele:
                 click_element_by_ele(page, _select_ele)
@@ -646,7 +681,7 @@ def say_hello(page, job_list):
                         SEARCH_PERSON_FILTER_DIALOG_FUNCTION_CONFIRM_ATTACH_XPATH, timeout=3)
                     click_element_by_ele(page, _confirm_btn_ele)
         # 目前年薪
-        if _current_annual_salary[_idx] != '':
+        if _current_annual_salary[_idx] != '' and _current_annual_salary[_idx] != '不选择':
             _select_ele = _filter_wrap_ele.ele(SEARCH_PERSON_FILTER_CURRENT_ANNUAL_SALARY_SELECT_ATTACH_XPATH,
                                                timeout=3)
             click_element_by_ele(page, _select_ele)
@@ -663,7 +698,7 @@ def say_hello(page, job_list):
                 click_element_by_ele(page, _right_input_ele)
                 page.actions.type(_end)
         # 期望年薪
-        if _expectation_annual_salary[_idx] != '':
+        if _expectation_annual_salary[_idx] != '' and _expectation_annual_salary[_idx] != '不选择':
             _select_ele = _filter_wrap_ele.ele(SEARCH_PERSON_FILTER_EXPECTATION_ANNUAL_SALARY_SELECT_ATTACH_XPATH,
                                                timeout=3)
             click_element_by_ele(page, _select_ele)
@@ -714,12 +749,22 @@ def say_hello(page, job_list):
             if _graduation_university_ele:
                 click_element_by_ele(page, _graduation_university_ele)
                 page.actions.type(_graduation_university[_idx])
-        # 搜索框
-        click_element_by_ele(page, _search_txt_ele)
-        page.actions.type(_search_txt[_idx]).type('\n')
+        # 搜索框 有快捷搜索则不需要通过输入框
+        if not _is_fast_search:
+            click_element_by_ele(page, _search_txt_ele)
+            if _search_txt[_idx] != '':
+                page.actions.type(_search_txt[_idx])
+            page.actions.type('\n')
+            time.sleep(1)  # 等待搜索完成
+        # 完成搜索后的筛选
+
         _now_person_num = 0
         _list_idx = 1
+        _need_person_num = int(_person_say_num[_idx])
         while True:
+            if _now_person_num >= _need_person_num:
+                print(f'当前{_current_job_name}打招呼完成，共{_now_person_num}个')
+                break
             _person_item = page.ele(SEARCH_PERSON_COMMUNICATION_LIST_ITEM_XPATH_PATTERN.format(_list_idx), timeout=3)
             _list_idx += 1
             if not _person_item:
@@ -735,32 +780,44 @@ def say_hello(page, job_list):
             _now_communication_ele = _person_item.ele('立即沟通')
             if _now_communication_ele:
                 click_element_by_ele(page, _now_communication_ele)
+                # 解决可能出现的 立即沟通和继续沟通未同步导致的状态错误 弹出对话框
+                _check_continue_dialog_ele = page.ele(SEARCH_PERSON_COMMUNICATION_CONTINUE_COMMUNICATION_MASK_LOCATION,
+                                                      timeout=2)
+                if _check_continue_dialog_ele:
+                    _close_btn_ele = _check_continue_dialog_ele.ele(
+                        SEARCH_PERSON_COMMUNICATION_CONTINUE_COMMUNICATION_CLOSE_ATTACH_XPATH, timeout=3)
+                    click_element_by_ele(page, _close_btn_ele)
+                    continue
                 _communication_dialog_ele = page.ele(SEARCH_PERSON_COMMUNICATION_DIALOG_LOCATION, timeout=3)
                 if _communication_dialog_ele:
-                    _search_input_ele = _communication_dialog_ele.ele(SEARCH_PERSON_COMMUNICATION_DIALOG_SEARCH_INPUT_ATTACH_XPATH, timeout=3) # 获取搜索框
+                    _search_input_ele = _communication_dialog_ele.ele(
+                        SEARCH_PERSON_COMMUNICATION_DIALOG_SEARCH_INPUT_ATTACH_XPATH, timeout=3)  # 获取搜索框
                     click_element_by_ele(page, _search_input_ele)
-                    page.actions.type(_current_job_name) # 输入当前职位名称
+                    page.actions.type(_current_job_name)  # 输入当前职位名称
+                    time.sleep(1)
+                    _item_ele_list = _communication_dialog_ele.s_eles(SEARCH_PERSON_COMMUNICATION_DIALOG_LIST_XPATH,
+                                                                      timeout=3)
                     _job_idx = 1
-                    while True:
-                        _job_item_ele = _communication_dialog_ele.ele(SEARCH_PERSON_COMMUNICATION_DIALOG_LIST_ITEM_XPATH_PATTERN.format(_job_idx), timeout=3) # 获取列表元素
-                        _job_idx += 1
-                        if not _job_item_ele:
-                            print('未搜索到目标职位')
-                            _dialog_cancel_ele = _communication_dialog_ele.ele(SEARCH_PERSON_COMMUNICATION_DIALOG_CANCEL_ATTACH_XPATH, timeout=3)
-                            if _dialog_cancel_ele:
-                                click_element_by_ele(page, _dialog_cancel_ele)
-                            break
-                        _job_name_ele = _job_item_ele.ele(SEARCH_PERSON_COMMUNICATION_DIALOG_ITEM_JOB_NAME_ATTACH_XPATH, timeout=3)
-                        _job_loc_ele = _job_item_ele.ele(SEARCH_PERSON_COMMUNICATION_DIALOG_ITEM_JOB_LOC_ATTACH_XPATH, timeout=3)
+                    for i, _ele in enumerate(_item_ele_list):
+                        _job_name_ele = _ele.ele(SEARCH_PERSON_COMMUNICATION_DIALOG_ITEM_JOB_NAME_ATTACH_XPATH,
+                                                 timeout=3)
+                        _job_loc_ele = _ele.ele(SEARCH_PERSON_COMMUNICATION_DIALOG_ITEM_JOB_LOC_ATTACH_XPATH, timeout=3)
                         if _job_name_ele and _job_loc_ele:
                             _job_name = _job_name_ele.text.strip('"\'')
                             _job_loc = _job_loc_ele.text.strip('"\'')
                             if _job_name == _current_job_name and _job_loc == _current_job_loc:
-                                click_element_by_ele(page, _job_item_ele)
-                                _confirm_btn_ele = _communication_dialog_ele.ele(SEARCH_PERSON_COMMUNICATION_DIALOG_CONFIRM_ATTACH_XPATH, timeout=3)
-                                if _confirm_btn_ele:
-                                    click_element_by_ele(page, _confirm_btn_ele)
+                                _job_idx = i + 1
                                 break
+                    _click_item_ele = _communication_dialog_ele.ele(
+                        SEARCH_PERSON_COMMUNICATION_DIALOG_LIST_ITEM_XPATH_PATTERN.format(_job_idx), timeout=3)
+                    click_element_by_ele(page, _click_item_ele)
+                    _confirm_btn_ele = _communication_dialog_ele.ele(
+                        SEARCH_PERSON_COMMUNICATION_DIALOG_CONFIRM_ATTACH_XPATH, timeout=3)
+                    if _confirm_btn_ele:
+                        click_element_by_ele(page, _confirm_btn_ele)
+                        _now_person_num += 1
+                else:
+                    print('未获取到沟通职位对话框')
             else:
                 print('当前人选没有立即沟通元素')
 
