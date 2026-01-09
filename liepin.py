@@ -927,9 +927,9 @@ def load_industry_cache(page, need_load):
 
 def do_chain(page, need_load):
     say_hello(page, load_industry_cache(page, need_load))
-    # while True:
-    #     proactive_resume(page)
-    #     passive_resume(page)
+    while True:
+        proactive_resume(page)
+        passive_resume(page)
 
 
 @deadline_decorator
