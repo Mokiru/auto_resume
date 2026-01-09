@@ -1,5 +1,6 @@
 import os
 import random
+import sys
 import threading
 import time
 import traceback
@@ -876,7 +877,10 @@ def load_industry_cache(page, need_load):
     :return:
     """
     # 先判断是否有缓存文件
-    job_file_path = os.path.join(os.path.dirname(__file__), 'job_list.txt')
+    if getattr(sys, 'frozen', False):
+        job_file_path = os.path.join(os.path.dirname(sys.executable), 'job_list.txt')
+    else:
+        job_file_path = os.path.join(os.path.dirname(__file__), 'job_list.txt')
     job_list = []
     need_save = False
     if os.path.exists(job_file_path):
