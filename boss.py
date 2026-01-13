@@ -21,7 +21,7 @@ MAIN_PAGE_AWESOME_PERSON_FILTER_EXPAND = '@class=vip-folded'  # 展开近期未�
 MAIN_PAGE_AWESOME_PERSON_XPATH = r'xpath://*[@id="wrap"]/div[1]/div/dl[2]'  # 主界面左侧菜单推荐牛人元素xpath
 MAIN_PAGE_AWESOME_PERSON_SEARCH_LABEL_XPATH = r'xpath://*[@id="headerWrap"]/div/div/div[2]'  # 主界面点击推荐牛人后的职位筛选框xpath
 MAIN_PAGE_AWESOME_PERSON_JOB_SEARCH_XPATH = r'xpath://*[@id="headerWrap"]/div/div/div[2]/div[2]/div[1]/input'  # 点击推荐牛人职位筛选框后出现的搜索框xpath
-MAIN_PAGE_AWESOME_PERSON_JOB_LIST_INDEX_XPATH_FORMAT = r'xpath://*[@id="headerWrap"]/div/div/div[2]/div[2]/ul/li[{0}]'  # 职位列表
+MAIN_PAGE_AWESOME_PERSON_JOB_LIST_XPATH = r'xpath://*[@id="headerWrap"]/div/div/div[2]/div[2]'  # 职位列表
 MAIN_PAGE_AWESOME_PERSON_JOB_LIST_FIRST_XPATH = r'xpath://*[@id="headerWrap"]/div/div/div[2]/div[2]/ul/li[1]'  # 点击推荐牛人职位筛选框后职位列表的第一个元素xpath
 MAIN_PAGE_AWESOME_PERSON_LIST_CARD_XPATH = r'xpath://*[@id="recommend-list"]/div/ul/li[{0}]/div'  # 推荐牛人列表card-item format xpath
 MAIN_PAGE_AWESOME_PERSON_LIST_SAY_HELLO_BTN_XPATH = r'xpath://*[@id="recommend-list"]/div/ul/li[{0}]/div/div[3]/div[3]/span/div/button'  # 点击推荐牛人后出现的牛人列表中打招呼format xpath
@@ -386,13 +386,14 @@ def get_position_list(page):
     """
     result = []
     wait_for_ele(page=page, xpath=MAIN_PAGE_AWESOME_PERSON_SEARCH_LABEL_XPATH, funcs=[click_element_by_ele])
-    index = 1
-    while True:
-        _job_ele = page.ele(locator=MAIN_PAGE_AWESOME_PERSON_JOB_LIST_INDEX_XPATH_FORMAT.format(index), timeout=2)
-        if not _job_ele:
-            break
-        result.append(re.search(r'</u>(.*?)</span>', _job_ele.html).group(1))
-        index += 1
+    position_ele_list = page.s_ele(locator=MAIN_PAGE_AWESOME_PERSON_JOB_LIST_XPATH, timeout=2)
+    if not position_ele_list:
+        print('未获取到职位列表')
+    _list_html = position_ele_list.html
+    matches = re.findall(r'<u>(.*?)</span>', _list_html)
+    for match in matches:
+        cleaned_match = match.strip('"\'')
+        result.append(cleaned_match)
     return result
 
 
