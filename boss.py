@@ -386,10 +386,11 @@ def get_position_list(page):
     """
     result = []
     wait_for_ele(page=page, xpath=MAIN_PAGE_AWESOME_PERSON_SEARCH_LABEL_XPATH, funcs=[click_element_by_ele])
-    position_ele_list = page.s_ele(locator=MAIN_PAGE_AWESOME_PERSON_JOB_LIST_XPATH, timeout=2)
-    if not position_ele_list:
+    position_list_ele = page.s_ele(locator=MAIN_PAGE_AWESOME_PERSON_SEARCH_LABEL_XPATH, timeout=2)
+    if not position_list_ele:
         print('未获取到职位列表')
-    _list_html = position_ele_list.html
+        return []
+    _list_html = position_list_ele.html
     matches = re.findall(r'<u>(.*?)</span>', _list_html)
     for match in matches:
         cleaned_match = match.strip('"\'')
