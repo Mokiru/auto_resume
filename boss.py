@@ -297,7 +297,9 @@ def say_hello(page, person_input: list[int], job_input: list[list[str]], filter_
                     for _filter in filter_input[i]:
                         _target_filter_ele = _filter_wrap_ele.ele(locator='@@class=option@@text():{0}'.format(_filter))
                         if not _target_filter_ele:
-                            print('未找到目标筛选项模板')
+                            _target_filter_ele = _filter_wrap_ele.ele(locator='@@class=name@@text():{0}'.format(_filter))
+                            if not _target_filter_ele:
+                                print(f'未找到筛选条件：{_filter}')
                         click_element_by_ele(page, _target_filter_ele)  # 点击筛选条件
                     click_element(page=page, xpath=MAIN_PAGE_AWESOME_PERSON_FILTER_WRAP_CONFIRM_XPATH)  # 点击确认
                     time.sleep(random.uniform(1.5, 2.0))  # 等待搜索结果
