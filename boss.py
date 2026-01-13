@@ -399,7 +399,7 @@ def get_position_list(page):
         print('未获取到职位列表')
         return []
     _list_html = position_list_ele.html
-    matches = re.findall(r'<u>(.*?)</span>', _list_html)
+    matches = re.findall(r'</u>(.*?)</span>', _list_html)
     for match in matches:
         cleaned_match = match.strip('"\'')
         result.append(cleaned_match)
