@@ -19,10 +19,11 @@ MAIN_PAGE_AWESOME_PERSON_CHAT_SETTING_XPATH = r'@class=setting'  # 消息提醒�
 MAIN_PAGE_AWESOME_PERSON_CHAT_SETTING_CONTAINER_XPATH = r'@class=ui-switch ui-switch-checked'  # 消息提醒开启切换按钮xpath
 MAIN_PAGE_AWESOME_PERSON_FILTER_EXPAND = '@class=vip-folded'  # 展开近期未看/活跃/院校等选项
 MAIN_PAGE_AWESOME_PERSON_XPATH = r'xpath://*[@id="wrap"]/div[1]/div/dl[2]'  # 主界面左侧菜单推荐牛人元素xpath
-MAIN_PAGE_AWESOME_PERSON_SEARCH_LABEL_XPATH = r'xpath://*[@id="headerWrap"]/div/div/div[2]'  # 主界面点击推荐牛人后的职位筛选框xpath
-MAIN_PAGE_AWESOME_PERSON_JOB_SEARCH_XPATH = r'xpath://*[@id="headerWrap"]/div/div/div[2]/div[2]/div[1]/input'  # 点击推荐牛人职位筛选框后出现的搜索框xpath
-MAIN_PAGE_AWESOME_PERSON_JOB_LIST_XPATH = r'xpath://*[@id="headerWrap"]/div/div/div[2]/div[2]'  # 职位列表
-MAIN_PAGE_AWESOME_PERSON_JOB_LIST_FIRST_XPATH = r'xpath://*[@id="headerWrap"]/div/div/div[2]/div[2]/ul/li[1]'  # 点击推荐牛人职位筛选框后职位列表的第一个元素xpath
+MAIN_PAGE_AWESOME_PERSON_HEADER_WRAP_LOCATION = r'xpath://*[@id="headerWrap"]' # headerWrap
+MAIN_PAGE_AWESOME_PERSON_SEARCH_LABEL_LOCATION = r'@|class=ui-dropmenu ui-dropmenu-visible ui-dropmenu-label-arrow ui-dropmenu-drop-arrow job-selecter-wrap expanding@|class=ui-dropmenu ui-dropmenu-label-arrow ui-dropmenu-drop-arrow job-selecter-wrap'  # 主界面点击推荐牛人后的职位筛选框
+MAIN_PAGE_AWESOME_PERSON_JOB_SEARCH_LOCATION = r'@@class=ipt chat-job-search@@placeholder=请输入职位名称'  # 点击推荐牛人职位筛选框后出现的搜索框xpath
+MAIN_PAGE_AWESOME_PERSON_JOB_LIST_LOCATION = r'@class=job-list'  # 职位列表
+MAIN_PAGE_AWESOME_PERSON_JOB_LIST_FIRST_XPATH = r'xpath:/li[1]'  # 相对职位列表，第li元素
 MAIN_PAGE_AWESOME_PERSON_LIST_CARD_XPATH = r'xpath://*[@id="recommend-list"]/div/ul/li[{0}]/div'  # 推荐牛人列表card-item format xpath
 MAIN_PAGE_AWESOME_PERSON_LIST_SAY_HELLO_BTN_XPATH = r'xpath://*[@id="recommend-list"]/div/ul/li[{0}]/div/div[3]/div[3]/span/div/button'  # 点击推荐牛人后出现的牛人列表中打招呼format xpath
 MAIN_PAGE_AWESOME_PERSON_FILTER_LABEL_XPATH = r'xpath://*[@id="headerWrap"]/div/div/div[4]/div/div/div'  # 推荐牛人中筛选xpath
@@ -277,10 +278,15 @@ def say_hello(page, person_input: list[int], job_input: list[list[str]], filter_
             _job_txt = job_input[i][_current_job_index]
             person_num = person_input[i]
             try:
-                click_element(page=page, xpath=MAIN_PAGE_AWESOME_PERSON_SEARCH_LABEL_XPATH)  # 点击职位筛选框
-                click_element(page=page, xpath=MAIN_PAGE_AWESOME_PERSON_JOB_SEARCH_XPATH)  # 点击搜索输入框
+                _header_wrap_ele = page.ele(locator=MAIN_PAGE_AWESOME_PERSON_HEADER_WRAP_LOCATION, timeout=3)
+                _search_label_ele = _header_wrap_ele.ele(locator=MAIN_PAGE_AWESOME_PERSON_SEARCH_LABEL_LOCATION, timeout=3)
+                click_element_by_ele(page, _search_label_ele)
+                _search_label_input_ele = _header_wrap_ele.ele(locator=MAIN_PAGE_AWESOME_PERSON_JOB_SEARCH_LOCATION, timeout=3)
+                click_element_by_ele(page, _search_label_input_ele)  # 点击搜索输入框
                 page.actions.type(_job_txt)
-                click_element(page=page, xpath=MAIN_PAGE_AWESOME_PERSON_JOB_LIST_FIRST_XPATH)  # 点击搜索结果的职位
+                _search_result_list_ele = _header_wrap_ele.ele(locator=MAIN_PAGE_AWESOME_PERSON_JOB_LIST_LOCATION, timeout=3)
+                _truth_search_result_ele = _search_result_list_ele.ele(locator=MAIN_PAGE_AWESOME_PERSON_JOB_LIST_FIRST_XPATH, timeout=3)
+                click_element_by_ele(page, _truth_search_result_ele)  # 点击搜索结果的职位
                 if len(filter_input[i]) > 0 and filter_input[i][0] != '':
                     click_element(page=page, xpath=MAIN_PAGE_AWESOME_PERSON_FILTER_LABEL_XPATH)  # 点击筛选条件框
                     _expand_filter = page.ele(locator=MAIN_PAGE_AWESOME_PERSON_FILTER_EXPAND, timeout=3)  # 获取 展开元素
@@ -308,7 +314,7 @@ def say_hello(page, person_input: list[int], job_input: list[list[str]], filter_
                         locator=MAIN_PAGE_AWESOME_PERSON_LIST_CARD_XPATH.format(index), timeout=5)  # 获取卡片元素
                     if not _card_ele:
                         # 当前职位已经没有推荐牛人
-                        _job_select_ele = page.ele(locator=MAIN_PAGE_AWESOME_PERSON_SEARCH_LABEL_XPATH, timeout=2)
+                        _job_select_ele = _header_wrap_ele.ele(locator=MAIN_PAGE_AWESOME_PERSON_SEARCH_LABEL_LOCATION, timeout=2)
                         browser_mouse_move(page, _job_select_ele.rect.location)
                         page.actions.scroll(delta_y=10000)  # 滑动到底部
                         _card_ele = page.ele(
@@ -385,8 +391,10 @@ def get_position_list(page):
     :return: 职位列表
     """
     result = []
-    wait_for_ele(page=page, xpath=MAIN_PAGE_AWESOME_PERSON_SEARCH_LABEL_XPATH, funcs=[click_element_by_ele])
-    position_list_ele = page.s_ele(locator=MAIN_PAGE_AWESOME_PERSON_SEARCH_LABEL_XPATH, timeout=2)
+    _header_wrap_ele = page.ele(locator=MAIN_PAGE_AWESOME_PERSON_HEADER_WRAP_LOCATION, timeout=3)
+    _selector_ele = _header_wrap_ele.ele(locator=MAIN_PAGE_AWESOME_PERSON_SEARCH_LABEL_LOCATION)
+    click_element_by_ele(page, _selector_ele)
+    position_list_ele = _header_wrap_ele.ele(locator=MAIN_PAGE_AWESOME_PERSON_JOB_LIST_LOCATION, timeout=2)
     if not position_list_ele:
         print('未获取到职位列表')
         return []
