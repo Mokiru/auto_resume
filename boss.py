@@ -274,19 +274,19 @@ def say_hello(page, person_input: list[int], job_input: list[list[str]], filter_
     wait_for_ele(page=page, xpath=MAIN_PAGE_AWESOME_PERSON_XPATH, funcs=[click_element_by_ele])  # 点击推荐牛人
     for i in range(len(job_input)):
         _current_job_index = 0
-        while _current_job_index < len(job_input[i]):
-            _job_txt = job_input[i][_current_job_index]
-            person_num = person_input[i]
+        while _current_job_index < len(job_input[i]): # 遍历当前筛选项对应的职位列表
+            _job_txt = job_input[i][_current_job_index] # 职位名称
+            person_num = person_input[i] # 打招呼人数
             try:
-                _header_wrap_ele = page.ele(locator=MAIN_PAGE_AWESOME_PERSON_HEADER_WRAP_LOCATION, timeout=3)
-                _search_label_ele = _header_wrap_ele.ele(locator=MAIN_PAGE_AWESOME_PERSON_SEARCH_LABEL_LOCATION, timeout=3)
-                click_element_by_ele(page, _search_label_ele)
-                _search_label_input_ele = _header_wrap_ele.ele(locator=MAIN_PAGE_AWESOME_PERSON_JOB_SEARCH_LOCATION, timeout=3)
+                _header_wrap_ele = page.ele(locator=MAIN_PAGE_AWESOME_PERSON_HEADER_WRAP_LOCATION, timeout=3) # 获取推荐牛人界面 头部栏元素
+                _search_label_ele = _header_wrap_ele.ele(locator=MAIN_PAGE_AWESOME_PERSON_SEARCH_LABEL_LOCATION, timeout=3) # 头部栏中的职位框
+                click_element_by_ele(page, _search_label_ele) # 点击职位框
+                _search_label_input_ele = _header_wrap_ele.ele(locator=MAIN_PAGE_AWESOME_PERSON_JOB_SEARCH_LOCATION, timeout=3) # 获取头部栏中职位框中的搜索框
                 click_element_by_ele(page, _search_label_input_ele)  # 点击搜索输入框
-                page.actions.type(_job_txt)
-                _search_result_list_ele = _header_wrap_ele.ele(locator=MAIN_PAGE_AWESOME_PERSON_JOB_LIST_LOCATION, timeout=3)
-                _truth_search_result_ele = _search_result_list_ele.ele(locator=MAIN_PAGE_AWESOME_PERSON_JOB_LIST_FIRST_XPATH, timeout=3)
-                click_element_by_ele(page, _truth_search_result_ele)  # 点击搜索结果的职位
+                page.actions.type(_job_txt) # 输入职位名称
+                _search_result_list_ele = _header_wrap_ele.ele(locator=MAIN_PAGE_AWESOME_PERSON_JOB_LIST_LOCATION, timeout=3) # 获取搜索后的结果列表
+                _truth_search_result_ele = _search_result_list_ele.ele(locator=MAIN_PAGE_AWESOME_PERSON_JOB_LIST_FIRST_XPATH, timeout=3) # 列表中的第一个元素
+                click_element_by_ele(page, _truth_search_result_ele)  # 点击第一个元素
                 if len(filter_input[i]) > 0 and filter_input[i][0] != '':
                     click_element(page=page, xpath=MAIN_PAGE_AWESOME_PERSON_FILTER_LABEL_XPATH)  # 点击筛选条件框
                     _expand_filter = page.ele(locator=MAIN_PAGE_AWESOME_PERSON_FILTER_EXPAND, timeout=3)  # 获取 展开元素
@@ -295,8 +295,10 @@ def say_hello(page, person_input: list[int], job_input: list[list[str]], filter_
                     _filter_wrap_ele = page.ele(locator=MAIN_PAGE_AWESOME_PERSON_FILTER_WRAP_XPATH,
                                                 timeout=5)  # 获取筛选界面容器元素
                     for _filter in filter_input[i]:
-                        click_element_by_ele(page,
-                                             _filter_wrap_ele.ele(locator='@text():{0}'.format(_filter)))  # 点击筛选条件
+                        _target_filter_ele = _filter_wrap_ele.ele(locator='@@class=option@@text():{0}'.format(_filter))
+                        if not _target_filter_ele:
+                            print('未找到目标筛选项模板')
+                        click_element_by_ele(page, _target_filter_ele)  # 点击筛选条件
                     click_element(page=page, xpath=MAIN_PAGE_AWESOME_PERSON_FILTER_WRAP_CONFIRM_XPATH)  # 点击确认
                     time.sleep(random.uniform(1.5, 2.0))  # 等待搜索结果
                 index = 1  # 从列表开始
@@ -357,6 +359,7 @@ def say_hello(page, person_input: list[int], job_input: list[list[str]], filter_
                     except Exception:
                         print("打招呼失败")
                         continue
+                _current_job_index += 1
             except Exception as ex:
                 traceback.print_exc()
                 with captcha_status['lock']:
