@@ -296,7 +296,7 @@ def say_hello(page, person_input: list[int], job_input: list[list[str]], filter_
                                                 timeout=5)  # 获取筛选界面容器元素
                     for _filter in filter_input[i]:
                         click_element_by_ele(page,
-                                             _filter_wrap_ele.ele(locator='@text()={0}'.format(_filter)))  # 点击筛选条件
+                                             _filter_wrap_ele.ele(locator='@text():{0}'.format(_filter)))  # 点击筛选条件
                     click_element(page=page, xpath=MAIN_PAGE_AWESOME_PERSON_FILTER_WRAP_CONFIRM_XPATH)  # 点击确认
                     time.sleep(random.uniform(1.5, 2.0))  # 等待搜索结果
                 index = 1  # 从列表开始
