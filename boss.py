@@ -232,6 +232,9 @@ def get_resume_in_had_resume(page, init_resume):
                      funcs=[click_element_by_ele])  # 点击未读
     else:
         print('已获取简历-全部')
+        wait_for_ele(page=page,
+                     xpath=r'xpath://*[@id="container"]/div[1]/div/div[2]/div[2]/div[1]/div[1]/div[2]/div/span[1]',
+                     funcs=[click_element_by_ele])  # 点击全部
     list_first_ele = page.ele(
         r'xpath://*[@id="container"]/div[1]/div/div[2]/div[2]/div[1]/div[2]/div/div[2]/div[1]')
     if not list_first_ele:
