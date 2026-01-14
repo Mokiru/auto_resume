@@ -4,6 +4,7 @@ import time
 import traceback
 import re
 import threading
+from datetime import datetime
 
 from base_operates import click_element, click_element_by_ele, open_browser, browser_mouse_move
 from operate_extensions import if_not_selected_click
@@ -38,6 +39,8 @@ MAIN_PAGE_COMMUNICATION_XPATH = r'xpath://*[@id="wrap"]/div[1]/div/dl[4]'
 URL_LOGIN = 'https://www.zhipin.com/web/user/?ka=bticket'
 URL_AWESOME = 'https://www.zhipin.com/web/chat/recommend'
 URL_COMMUNICATION = 'https://www.zhipin.com/web/chat/index'
+
+TIME_PATTERN = r'^([01]?[0-9]|2[0-3]):[0-5][0-9]$'
 
 USER_DATA_DIR = os.path.join(os.environ['APPDATA'], 'auto_resume', 'boss')
 PORT = 9222
@@ -225,14 +228,13 @@ def get_resume_in_had_resume(page, init_resume):
         page.get(URL_COMMUNICATION)
     wait_for_ele(page=page, xpath=r'@title=已获取简历',
                  funcs=[if_not_selected_click])
-    if init_resume == 1:
-        print('已获取简历-未读')
-        wait_for_ele(page=page,
-                     xpath=r'xpath://*[@id="container"]/div[1]/div/div[2]/div[2]/div[1]/div[1]/div[2]/div/span[2]',
-                     funcs=[click_element_by_ele])  # 点击未读
-    else:
-        print('已获取简历-全部')
-        wait_for_ele(page=page,
+    # if init_resume == 1:
+    #     print('已获取简历-未读')
+    #     wait_for_ele(page=page,
+    #                  xpath=r'xpath://*[@id="container"]/div[1]/div/div[2]/div[2]/div[1]/div[1]/div[2]/div/span[2]',
+    #                  funcs=[click_element_by_ele])  # 点击未读
+    print('已获取简历-全部')
+    wait_for_ele(page=page,
                      xpath=r'xpath://*[@id="container"]/div[1]/div/div[2]/div[2]/div[1]/div[1]/div[2]/div/span[1]',
                      funcs=[click_element_by_ele])  # 点击全部
     list_first_ele = page.ele(
@@ -256,6 +258,17 @@ def get_resume_in_had_resume(page, init_resume):
         if not list_item_ele:
             break
         index += 1
+        time_span_ele = list_item_ele.ele(r'xpath:/div/div/div[2]/div/span')
+        _time_text = time_span_ele.text.strip('"\'').strip()
+        check = False
+        if re.match(TIME_PATTERN, _time_text):
+            try:
+                datetime.strptime(_time_text, '%H:%M')
+                check = True
+            except ValueError:
+                check = False
+        if not check:
+            continue # 不处理非今日数据
         try:
             click_element_by_ele(page, list_item_ele)
         except Exception:
