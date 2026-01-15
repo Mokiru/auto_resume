@@ -309,7 +309,9 @@ jobs:
           BOSS_PACKAGE="AutoBoss-macOS-v$VERSION.zip"
           if [ -f "dist/boss" ]; then
             echo "找到macOS可执行文件: dist/boss"
-            zip -r "$BOSS_PACKAGE" dist/boss
+            cd dist
+            zip -r "../$BOSS_PACKAGE" boss -j
+            cd ..
             echo "✅ macOS Boss Package created: $BOSS_PACKAGE"
           else
             echo "❌ 可执行文件不存在"
@@ -321,7 +323,9 @@ jobs:
           # 创建liepin压缩包
           LIEPIN_PACKAGE="AutoLiepin-macOS-v$VERSION.zip"
           if [ -f "dist/liepin" ]; then
-            zip -r "$LIEPIN_PACKAGE" dist/liepin
+            cd dist
+            zip -r "../$LIEPIN_PACKAGE" liepin -j
+            cd ..
             echo "✅ macOS Liepin包创建成功: $LIEPIN_PACKAGE"
           else
             echo "❌ liepin 不存在"
