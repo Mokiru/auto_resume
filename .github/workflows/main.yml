@@ -201,8 +201,8 @@ jobs:
             exit 1
           }
 
-      - name: Create ZIP package
-        id: create_package
+      - name: Create ZIP package for windows
+        id: create_windows_package
         run: |
           $VERSION="${{ steps.target-tag.outputs.VERSION }}"
           Write-Host "创建压缩包:"
@@ -340,7 +340,7 @@ jobs:
             ${{ steps.create_macos_package.outputs.boss_name }}
             ${{ steps.create_macos_package.outputs.liepin_name }}
   create-release:
-    needs: [ build-macos, build-windows ]
+    needs: [ analyze-commits, build-macos, build-windows ]
     runs-on: ubuntu-latest
     steps:
       - name: Download all packages
