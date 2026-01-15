@@ -133,7 +133,7 @@ jobs:
           git push origin $TAG
           echo "✅ 标签 $TAG 创建成功"
 
-  build-and-release:
+  build-windows:
     needs: [ analyze-commits, create-tag ]
     runs-on: windows-latest
     steps:
@@ -206,7 +206,7 @@ jobs:
         run: |
           $VERSION="${{ steps.target-tag.outputs.VERSION }}"
           Write-Host "创建压缩包:"
-          $BOSS_PACKAGE="AutoBoss-v$VERSION.zip"
+          $BOSS_PACKAGE="AutoBoss-Windows-v$VERSION.zip"
           if (Test-Path "dist/boss.exe" ) {
             Write-Host "找到Windows可执行文件: dist/boss.exe"
             Compress-Archive -Path "dist/boss.exe" -DestinationPath "$BOSS_PACKAGE"
@@ -219,7 +219,7 @@ jobs:
           }
           
           # 创建liepin压缩包
-          $LIEPIN_PACKAGE="AutoLiepin-v$VERSION.zip"
+          $LIEPIN_PACKAGE="AutoLiepin-Windows-v$VERSION.zip"
           if (Test-Path "dist/liepin.exe" ) {
             Compress-Archive -Path "dist/liepin.exe" -DestinationPath "$LIEPIN_PACKAGE"
             Write-Host "✅ Liepin包创建成功: $LIEPIN_PACKAGE"
@@ -232,32 +232,154 @@ jobs:
           echo "liepin_name=$LIEPIN_PACKAGE" >> $env:GITHUB_OUTPUT
           # 列出所有文件确认
           Get-ChildItem -Name "*.zip"
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: windows-packages
+          path: |
+            ${{ steps.create_windows_package.outputs.boss_name }}
+            ${{ steps.create_windows_package.outputs.liepin_name }}
+  build-macos:
+    needs: [ analyze-commits, create-tag ]
+    runs-on: macos-latest
+    steps:
+      - name: Debug information
+        run: |          
+          echo "=== macOS 构建调试信息 ==="
+          echo "是否需要发布: ${{ needs.analyze-commits.outputs.should-release }}"
+          echo "版本类型: ${{ needs.analyze-commits.outputs.version-type }}"
+          echo "新标签: ${{ needs.analyze-commits.outputs.new-tag }}"
+          echo "================="
+
+      - name: Determine target tag
+        id: target-tag
+        run: |          
+          if [ "${{ needs.analyze-commits.outputs.should-release }}" = "true" ]; then
+          TAG="${{ needs.analyze-commits.outputs.new-tag }}"
+          else
+          TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          fi
+          
+          # 清理版本号（移除开头的v）
+          VERSION=${TAG#v}
+          
+          echo "TAG_NAME=$TAG" >> $GITHUB_OUTPUT
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "最终版本: $VERSION"
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      - name: Install dependencies
+        run: |          
+          pip install --upgrade pip
+          if [ -f "requirements.txt" ]; then
+            pip install -r requirements.txt
+          fi
+          pip install pyinstaller
+      - name: Build boss executable for macOS
+        run: |          
+          if [ -f "boss.py" ]; then
+          pyinstaller --onefile boss.py
+          else
+          echo "❌ boss.py 文件不存在"
+          ls -la
+          exit 1
+          fi
+      - name: Build liepin executable for macOS
+        run: |          
+          if [ -f "liepin.py" ]; then
+          pyinstaller --onefile liepin.py
+          echo "✅ liepin.py 打包完成"
+          else
+          echo "❌ liepin.py 文件不存在"
+          ls -la
+          exit 1
+          fi
+      - name: Create ZIP package for macOS
+        id: create_macos_package
+        run: |          
+          VERSION="${{ steps.target-tag.outputs.VERSION }}"
+          echo "创建macOS压缩包:"
+          BOSS_PACKAGE="AutoBoss-macOS-v$VERSION.zip"
+          if [ -f "dist/boss" ]; then
+            echo "找到macOS可执行文件: dist/boss"
+            zip -r "$BOSS_PACKAGE" dist/boss
+            echo "✅ macOS Boss Package created: $BOSS_PACKAGE"
+          else
+            echo "❌ 可执行文件不存在"
+            ls -la dist/
+            find . -name "boss*" -type f
+            exit 1
+          fi
+          
+          # 创建liepin压缩包
+          LIEPIN_PACKAGE="AutoLiepin-macOS-v$VERSION.zip"
+          if [ -f "dist/liepin" ]; then
+            zip -r "$LIEPIN_PACKAGE" dist/liepin
+            echo "✅ macOS Liepin包创建成功: $LIEPIN_PACKAGE"
+          else
+            echo "❌ liepin 不存在"
+            exit 1
+          fi
+          
+          echo "boss_name=$BOSS_PACKAGE" >> $GITHUB_OUTPUT
+          echo "liepin_name=$LIEPIN_PACKAGE" >> $GITHUB_OUTPUT
+          # 列出所有文件确认
+          ls -la *.zip
+      - name: Upload macOS artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: macos-packages
+          path: |            
+            ${{ steps.create_macos_package.outputs.boss_name }}
+            ${{ steps.create_macos_package.outputs.liepin_name }}
+  create-release:
+    needs: [ build-macos, build-windows ]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all packages
+        uses: actions/download-artifact@v3
+        with:
+          path: ./packages
+
+      - name: List downloaded packages
+        run: |          
+          echo "下载的包文件:"
+          find ./packages -name "*.zip" -type f
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
         if: needs.analyze-commits.outputs.should-release == 'true'
         with:
-          tag_name: ${{ steps.target-tag.outputs.TAG_NAME }}
-          name: Release ${{ steps.target-tag.outputs.TAG_NAME }}
-          body: |
-            # AutoBoss ${{ steps.target-tag.outputs.TAG_NAME }}
+          tag_name: ${{ needs.analyze-commits.outputs.new-tag }}
+          name: Release ${{ needs.analyze-commits.outputs.new-tag }}
+          body: |            # AutoBoss ${{ needs.analyze-commits.outputs.new-tag }}
             
             ## 自动构建版本
             
             ### 构建信息
-            - **版本**: ${{ steps.target-tag.outputs.TAG_NAME }}
+            - **版本**: ${{ needs.analyze-commits.outputs.new-tag }}
             - **构建时间**: $(date -Iseconds)
             - **提交**: ${{ github.sha }}
             - **触发提交**: ${{ github.event.head_commit.message }}
-          files: |
-            ${{ steps.create_package.outputs.boss_name }}
-            ${{ steps.create_package.outputs.liepin_name }}
+            
+            ### 下载选项
+            - Windows 版本: AutoBoss-Windows-v${{ needs.analyze-commits.outputs.new-tag }}.zip, AutoLiepin-Windows-v${{ needs.analyze-commits.outputs.new-tag }}.zip
+            - macOS 版本: AutoBoss-macOS-v${{ needs.analyze-commits.outputs.new-tag }}.zip, AutoLiepin-macOS-v${{ needs.analyze-commits.outputs.new-tag }}.zip
+          files: |            
+            packages/windows-packages/*
+            packages/macos-packages/*
           draft: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Success notification
-        run: |
+        run: |          
           echo "🎉 构建和发布完成!"
-          echo "📦 版本: ${{ steps.target-tag.outputs.TAG_NAME }}"
-          echo "📁 包文件: ${{ steps.create_package.outputs.boss_name }},  ${{ steps.create_package.outputs.liepin_name}}"
+          echo "📦 版本: ${{ needs.analyze-commits.outputs.new-tag }}"
