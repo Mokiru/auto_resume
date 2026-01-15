@@ -233,7 +233,7 @@ jobs:
           # 列出所有文件确认
           Get-ChildItem -Name "*.zip"
       - name: Upload Windows artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: windows-packages
           path: |
@@ -333,7 +333,7 @@ jobs:
           # 列出所有文件确认
           ls -la *.zip
       - name: Upload macOS artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: macos-packages
           path: |            
@@ -344,7 +344,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download all packages
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           path: ./packages
 
