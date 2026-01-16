@@ -393,6 +393,9 @@ def say_hello(page, person_input: list[int], job_input: list[list[str]], filter_
                             if _desired in _desired_txt:
                                 can_say_hello = True
                                 break
+                    else:
+                        print('未找到期望职位元素')
+                        continue
                     if not can_say_hello:
                         print('当前职位期望职位不符')
                         continue
@@ -544,7 +547,7 @@ def do_chain(page):
     while True:
         proactive_resume(page)  # 第二步 收取主动打招呼的简历
         passive_resume(page)  # 第三步 处理新招呼 求简历
-        get_resume_in_had_resume(page, init_resume)
+        # get_resume_in_had_resume(page, init_resume)
         init_resume |= 1
 
 
