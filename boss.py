@@ -355,6 +355,17 @@ def say_hello(page, person_input: list[int], job_input: list[list[str]], filter_
                             if not _target_filter_ele:
                                 print(f'未找到筛选条件：{_filter}')
                         click_element_by_ele(page, _target_filter_ele)  # 点击筛选条件
+                        if interrupt_check['interrupt_check']:
+                            # 非vip
+                            print('当前账号非vip，无法选择vip筛选项')
+                            while True:
+                                if interrupt_check['can_return']:
+                                    break
+                                else:
+                                    time.sleep(1)
+                                    continue
+                            interrupt_check['interrupt_check'] = False
+                            interrupt_check['can_return'] = False
                     click_element(page=page, xpath=MAIN_PAGE_AWESOME_PERSON_FILTER_WRAP_CONFIRM_XPATH)  # 点击确认
                     time.sleep(random.uniform(1.5, 2.0))  # 等待搜索结果
                 index = 1  # 从列表开始

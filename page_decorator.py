@@ -17,9 +17,10 @@ def _solve_over_say_hello_dialog(page, interrupt_check, stop_event):
     :return:
     """
     while not stop_event.is_set():
-        _dialog_ele = page.ele(locator=r'@class=boss-popup__wrapper boss-dialog boss-dialog__wrapper business-block-dialog business-block-wrap circle', timeout=5)
+        _dialog_ele = page.ele(
+            locator=r'@class=boss-popup__wrapper boss-dialog boss-dialog__wrapper business-block-dialog business-block-wrap circle',
+            timeout=5)
         if _dialog_ele:
-            print('超出打招呼总量限制')
             # 超出限制
             interrupt_check['interrupt_check'] = True
             # 点击关闭
@@ -57,8 +58,8 @@ def say_call_dialog_solve(func):
     return wrapper
 
 
-def check_dialog_popup(page, locator):
-    while True:
+def check_dialog_popup(page, locator, stop_event):
+    while not stop_event.is_set():
         _error_ele = page.ele(locator=locator, timeout=2)
         if _error_ele:
             # 出现验证
@@ -79,10 +80,15 @@ def popup_when_ele_existed(locator: str):
     def decorator(func):
         def wrapper(*args, **kwargs):
             page = args[0]  # 获取标签页
-            monitor_thread = threading.Thread(target=check_dialog_popup, args=(page, locator), daemon=True)
+            stop_event = threading.Event()
+            monitor_thread = threading.Thread(target=check_dialog_popup, args=(page, locator, stop_event), daemon=True)
             monitor_thread.start()
-            result = func(*args, **kwargs)
-            return result
+            try:
+                result = func(*args, **kwargs)
+                return result
+            finally:
+                stop_event.set()
+                monitor_thread.join(timeout=2.0)
 
         return wrapper
 
