@@ -865,6 +865,7 @@ def say_hello(page, job_list):
                         if _confirm_btn_ele:
                             click_element_by_ele(page, _confirm_btn_ele)
                             _now_person_num += 1
+                            print(f'当前{_current_job_name}打招呼进度：{_now_person_num}/{_need_person_num}')
                     else:
                         print('未获取到沟通职位对话框')
                 else:
