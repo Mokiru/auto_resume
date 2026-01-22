@@ -158,7 +158,7 @@ COMMUNICATION_MESSAGE_BOX_XPATH = r'xpath://*[@id="main-container"]/section/sect
 COMMUNICATION_INITIATED_XPATH = r'xpath://*[@id="main-container"]/section/section/main/div/div[1]/div/div[1]/div[2]/div/div/div/label[3]'
 
 JOB_MANAGEMENT_LIST_ITEM_XPATH_PATTERN = r'xpath://*[@id="main-container"]/section/section/main/div/div[1]/div[2]/div/div[2]/div[{0}]'  # 职位管理xpath模板
-JOB_MANAGEMENT_LIST_XPATH = r'xpath://*[@id="main-container"]/section/section/main/div/div[1]/div[2]/div/div[2]/*' # 职位管理列表下所有元素xpath
+JOB_MANAGEMENT_LIST_XPATH = r'xpath://*[@id="main-container"]/section/section/main/div/div[1]/div[2]/div/div[2]/*'  # 职位管理列表下所有元素xpath
 JOB_MANAGEMENT_LIST_ITEM_JOB_NAME_ATTACH_XPATH = r'xpath:/div[1]/div[1]/a'  # 职位名称元素
 JOB_MANAGEMENT_LIST_ITEM_JOB_NAME_DESC_ATTACH_XPATH = r'xpath:/div[1]/div[2]/span'  # 职位描述 地址
 JOB_MANAGEMENT_TOP_CLASS = r'@class=jobCardWrap--YDbfn jobCardWrapTopFlag--D85cx'  # 元素指定class
@@ -380,7 +380,7 @@ def say_hello(page, job_list):
             {'type': 'input', 'title': '自定义经验(-分隔)'},
             {'type': 'multiselect', 'title': '教育经历', 'choices': EDUCATION_CHOICES},
             {'type': 'select', 'title': '统招要求', 'choices': UNIFIED_RECRUITMENT_REQUIREMENT_CHOICES},
-            {'type': 'select', 'title': '院校要求', 'choices': UNIVERSITY_REQUIREMENT_CHOICES},
+            {'type': 'multiselect', 'title': '院校要求', 'choices': UNIVERSITY_REQUIREMENT_CHOICES},
             {'type': 'select', 'title': '活跃状态', 'choices': ACTIVE_STATUS_CHOICES},
             {'type': 'select', 'title': '求职状态', 'choices': JOB_HUNTING_CHOICES},
             {'type': 'select', 'title': '跳槽频率', 'choices': FREQUENCY_OF_JOB_HOPPING_CHOICES},
@@ -543,13 +543,14 @@ def say_hello(page, job_list):
                     '[object Object]' if _unified_recruitment_requirement[_idx] == '不限' else
                     _unified_recruitment_requirement[_idx]))
         # 院校要求
-        if _university_requirement[_idx] != '不选择':
+        if len(_university_requirement[_idx]) > 0:
             _university_requirement_ele = _filter_wrap_ele.ele(SEARCH_PERSON_FILTER_UNIVERSITY_ATTACH_XPATH,
                                                                timeout=2)  # 院校要求选择框
             if _university_requirement_ele:
                 click_element_by_ele(page, _university_requirement_ele)  # 点击选择框
-                _popup_click_ele(page, SEARCH_PERSON_FILTER_SELECT_PATTERN_LOCATION.format(
-                    '[object Object]' if _university_requirement[_idx] == '不限' else _university_requirement[_idx]))
+                for _item in _university_requirement[_idx]:
+                    _popup_click_ele(page, SEARCH_PERSON_FILTER_SELECT_PATTERN_LOCATION.format(
+                        '[object Object]' if _item == '不限' else _item))
         # 更多条件
         _more_filter_ele = page.ele(SEARCH_PERSON_FILTER_MORE_FILTER_CLASS, timeout=2)
         if _more_filter_ele:
