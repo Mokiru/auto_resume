@@ -466,7 +466,7 @@ def get_position_list(page):
     :return: 职位列表
     """
     result = []
-    _header_wrap_ele = page.ele(locator=MAIN_PAGE_AWESOME_PERSON_HEADER_WRAP_LOCATION, timeout=3)
+    _header_wrap_ele = page.ele(locator=MAIN_PAGE_AWESOME_PERSON_HEADER_WRAP_LOCATION, timeout=10)
     _selector_ele = _header_wrap_ele.ele(locator=MAIN_PAGE_AWESOME_PERSON_SEARCH_LABEL_LOCATION)
     click_element_by_ele(page, _selector_ele)
     position_list_ele = _header_wrap_ele.ele(locator=MAIN_PAGE_AWESOME_PERSON_JOB_LIST_LOCATION, timeout=2)
