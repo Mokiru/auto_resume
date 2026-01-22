@@ -553,12 +553,13 @@ def say_hello(page, job_list):
                     '[object Object]' if _unified_recruitment_requirement[_idx] == '不限' else
                     _unified_recruitment_requirement[_idx]))
         # 院校要求
-        if len(_university_requirement[_idx]) > 0:
+        if _university_requirement[_idx] != '' and _university_requirement[_idx] != '不选择':
+            _university_requirement_list = _university_requirement[_idx].split(';')
             _university_requirement_ele = _filter_wrap_ele.ele(SEARCH_PERSON_FILTER_UNIVERSITY_ATTACH_XPATH,
                                                                timeout=2)  # 院校要求选择框
             if _university_requirement_ele:
                 click_element_by_ele(page, _university_requirement_ele)  # 点击选择框
-                for _item in _university_requirement[_idx]:
+                for _item in _university_requirement_list:
                     _popup_click_ele(page, SEARCH_PERSON_FILTER_SELECT_PATTERN_LOCATION.format(
                         '[object Object]' if _item == '不限' else _item))
         # 更多条件
