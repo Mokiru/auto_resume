@@ -463,6 +463,8 @@ def popup_mixed_inputs(config_list: list[dict], ok_text: str = "确定", cancel_
             {'type': 'input', 'title': '自定义职位名称:'},
             {'type': 'multiselect', 'title': '选择筛选条件:', 'choices': ['男', '女', '应届生']}
         ])
+        每一个选项 {} 都会返回一个字符串
+        对于 multiselect 多选的选项会以;为间隔返回
     >>> print(result)
     """
     dialog = MixedInputDialog(root, config_list, ok_text, cancel_text)
