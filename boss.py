@@ -427,6 +427,7 @@ def say_hello(page, person_input: list[int], job_input: list[list[str]], filter_
                         if person_num <= 0:
                             print('{0}职位打招呼结束'.format(_job_txt))
                             break
+                        time.sleep(random.uniform(1.5, 2.0)) # 等待打招呼页面加载 fix-可能打完招呼后页面会刷新加入相似推荐卡片在列表中
                     except Exception:
                         print("打招呼失败")
                         continue
