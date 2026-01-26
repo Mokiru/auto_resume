@@ -1,4 +1,6 @@
+import configparser
 import math
+import os
 import random
 import time
 from typing import Optional
@@ -137,7 +139,8 @@ def _click_element(tab, ele, button='left', count=1, is_random=True):
     ele.click.at(offset_x=_offset_x, offset_y=_offset_y, button=button, count=count)
 
 
-def open_browser(path: Optional[str] = None, user_data_dir: Optional[str] = None, local_port: Optional[int] = 9222) -> Chromium:
+def open_browser(path: Optional[str] = None, user_data_dir: Optional[str] = None,
+                 local_port: Optional[int] = 9222) -> Chromium:
     co = ChromiumOptions()
     co.set_argument('--start-maximized')
     if user_data_dir:
@@ -160,3 +163,60 @@ def click_element(page, xpath):
 def click_element_by_ele(page, ele):
     _click_element(page, ele)
     time.sleep(random.uniform(0.3, 0.7))
+
+
+def read_or_create_ini(file_path: str, default_config: dict = None):
+    """
+    读取或创建INI配置文件
+
+    Args:
+        file_path: 配置文件路径
+        default_config: 默认配置
+
+    Returns:
+        ConfigParser对象
+    """
+    config = configparser.ConfigParser()
+
+    # 如果文件不存在，创建并写入默认配置
+    if not os.path.exists(file_path):
+        if default_config:
+            for section, options in default_config.items():
+                config[section] = options
+        else:
+            # 提供基本的默认配置
+            config['DEFAULT'] = {'created': 'true'}
+
+        # 确保目录存在
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+
+        # 写入文件
+        with open(file_path, 'w', encoding='utf-8') as f:
+            config.write(f)
+    else:
+        # 读取现有配置
+        config.read(file_path, encoding='utf-8')
+
+    return config
+
+
+def update_ini_value(file_path: str, section: str, key: str, value: str):
+    """
+    更新INI配置文件的值
+
+    Args:
+        file_path: 配置文件路径
+        section: 配置节
+        key: 配置键
+        value: 配置值
+    """
+    config = configparser.ConfigParser()
+    config.read(file_path, encoding='utf-8')
+
+    if not config.has_section(section):
+        config.add_section(section)
+
+    config.set(section, key, str(value))
+
+    with open(file_path, 'w', encoding='utf-8') as f:
+        config.write(f)

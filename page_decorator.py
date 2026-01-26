@@ -1,7 +1,7 @@
 import threading
 import time
 
-from base_operates import click_element_by_ele
+from base_operates import click_element_by_ele, click_element
 from simple_dialog import show_warning_dialog, safe_gui_call
 
 captcha_status = {
@@ -16,21 +16,28 @@ def _solve_over_say_hello_dialog(page, interrupt_check, stop_event):
     :param page:
     :return:
     """
+    locator = r'@class=boss-popup__wrapper boss-dialog boss-dialog__wrapper business-block-dialog business-block-wrap circle'
+    btn_locator = r'@class=icon-close'
     while not stop_event.is_set():
         _dialog_ele = page.ele(
-            locator=r'@class=boss-popup__wrapper boss-dialog boss-dialog__wrapper business-block-dialog business-block-wrap circle',
+            locator=locator,
             timeout=5)
         if _dialog_ele:
             # 超出限制
             interrupt_check['interrupt_check'] = True
             # 点击关闭
-            _close_btn_ele = _dialog_ele.ele(locator='@class=icon-close')
+            _close_btn_ele = _dialog_ele.ele(locator=btn_locator)
             if not _close_btn_ele:
                 print('未找到超出打招呼限制弹窗的关闭按钮')
                 break
             else:
-                print('关闭弹窗')
-                click_element_by_ele(page, _close_btn_ele)
+                try:
+                    print('尝试关闭弹窗')
+                    click_element_by_ele(page, _close_btn_ele)
+                    print('关闭成功')
+                except Exception:
+                    print('关闭弹窗失败-重试')
+                    continue
             interrupt_check['can_return'] = True
         time.sleep(0.1)
 

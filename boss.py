@@ -46,6 +46,12 @@ URL_COMMUNICATION = 'https://www.zhipin.com/web/chat/index'
 TIME_PATTERN = r'^([01]?[0-9]|2[0-3]):[0-5][0-9]$'
 
 USER_DATA_DIR = os.path.join(os.environ['APPDATA'], 'auto_resume', 'boss')
+CONFIG_INI_PATH = os.path.join(os.environ['APPDATA'], 'auto_resume', 'boss.ini')
+DEFAULT_CONFIG = {
+    'default' : {
+        'created' : 'True'
+    }
+}
 PORT = 9222
 
 
@@ -329,6 +335,15 @@ def say_hello(page, person_input: list[int], job_input: list[list[str]], filter_
     for i in range(len(job_input)):
         _current_job_index = 0
         while _current_job_index < len(job_input[i]):  # 遍历当前筛选项对应的职位列表
+            if interrupt_check['interrupt_check']:
+                # 超出限制 需要终止
+                print('牛人打招呼已打满')
+                while True:
+                    if interrupt_check['can_return']:
+                        return
+                    else:
+                        time.sleep(1)
+                        continue
             _job_txt = job_input[i][_current_job_index]  # 职位名称
             person_num = person_input[i]  # 打招呼人数
             try:
@@ -431,6 +446,7 @@ def say_hello(page, person_input: list[int], job_input: list[list[str]], filter_
                         print("当前职位没有推荐牛人")
                         continue
                     try:
+                        print('{0}职位将打招呼{1}人'.format(_job_txt, person_input[i] - person_num)) # fix-可能点击与限制弹窗出现次序问题，如 点击-弹窗关闭-成功打招呼日志输出(该成功只能说明点击成功而不能说明真正打招呼成功即超出限制) 顺序问题
                         click_element_by_ele(page, _say_hello_ele)  # 点击打招呼
                         person_num -= 1
                         print('{0}职位已打招呼{1}人'.format(_job_txt, person_input[i] - person_num))
