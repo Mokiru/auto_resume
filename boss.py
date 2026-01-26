@@ -333,7 +333,7 @@ def say_hello(page, person_input: list[int], job_input: list[list[str]], filter_
             person_num = person_input[i]  # 打招呼人数
             try:
                 _header_wrap_ele = page.ele(locator=MAIN_PAGE_AWESOME_PERSON_HEADER_WRAP_LOCATION,
-                                            timeout=3)  # 获取推荐牛人界面 头部栏元素
+                                            timeout=5)  # 获取推荐牛人界面 头部栏元素
                 _search_label_ele = _header_wrap_ele.ele(locator=MAIN_PAGE_AWESOME_PERSON_SEARCH_LABEL_LOCATION,
                                                          timeout=3)  # 头部栏中的职位框
                 click_element_by_ele(page, _search_label_ele)  # 点击职位框
@@ -353,6 +353,10 @@ def say_hello(page, person_input: list[int], job_input: list[list[str]], filter_
                         click_element_by_ele(page, _expand_filter)  # 如果需要展开则点击
                     _filter_wrap_ele = page.ele(locator=MAIN_PAGE_AWESOME_PERSON_FILTER_WRAP_XPATH,
                                                 timeout=5)  # 获取筛选界面容器元素
+                    if not _filter_wrap_ele:
+                        print('未找到筛选界面-尝试刷新页面后获取')
+                        page.refresh()
+                        continue
                     for _filter in filter_input[i]:
                         _target_filter_ele = _filter_wrap_ele.ele(locator='@@class=option@@text():{0}'.format(_filter))
                         if not _target_filter_ele:
