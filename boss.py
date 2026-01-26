@@ -565,7 +565,7 @@ def do_chain(page):
     while True:
         proactive_resume(page)  # 第二步 收取主动打招呼的简历
         passive_resume(page)  # 第三步 处理新招呼 求简历
-        # get_resume_in_had_resume(page, init_resume)
+        get_resume_in_had_resume(page, init_resume)
         init_resume |= 1
 
 
