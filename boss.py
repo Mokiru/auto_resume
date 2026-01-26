@@ -35,6 +35,9 @@ MAIN_PAGE_AWESOME_PERSON_FILTER_NORMAL_ITEM_XPATH_FORMAT = r'xpath://*[@id="head
 MAIN_PAGE_AWESOME_PERSON_FILTER_WRAP_CONFIRM_XPATH = r'xpath://*[@id="headerWrap"]/div/div/div[4]/div/div[2]/div[2]/div[2]'  # 筛选界面确认按钮xpath
 MAIN_PAGE_COMMUNICATION_MESSAGE_CHAT_XPATH = r'xpath://*[@id="container"]/div[1]/div/div[2]/div[2]/div[2]/div[1]/div[1]/div[2]/div[2]'  # 沟通中的消息对话框xpath
 MAIN_PAGE_COMMUNICATION_XPATH = r'xpath://*[@id="wrap"]/div[1]/div/dl[4]'
+MAIN_PAGE_COMMUNICATION_MESSAGE_LIST_FIRST_ITEM_XPATH = r'xpath://*[@id="container"]/div[1]/div/div[2]/div[2]/div[1]/div[2]/div/div[2]/div[1]'
+MAIN_PAGE_COMMUNICATION_MESSAGE_LIST_FILTER_NO_READ_XPATH = r'xpath://*[@id="container"]/div[1]/div/div[2]/div[2]/div[1]/div[1]/div[2]/div/span[2]'
+MAIN_PAGE_COMMUNICATION_MESSAGE_LIST_FILTER_ALL_XPATH = r'xpath://*[@id="container"]/div[1]/div/div[2]/div[2]/div[1]/div[1]/div[2]/div/span[1]'
 
 URL_LOGIN = 'https://www.zhipin.com/web/user/?ka=bticket'
 URL_AWESOME = 'https://www.zhipin.com/web/chat/recommend'
@@ -69,12 +72,12 @@ def proactive_resume(page):
     wait_for_ele(page=page, xpath=r'xpath://*[@id="container"]/div[1]/div/div[2]/div[1]/div/div/div/div[3]',
                  funcs=[if_not_selected_click])  # 点击我发起
     wait_for_ele(page=page,
-                 xpath=r'xpath://*[@id="container"]/div[1]/div/div[2]/div[2]/div[1]/div[1]/div[2]/div/span[2]',
+                 xpath=MAIN_PAGE_COMMUNICATION_MESSAGE_LIST_FILTER_NO_READ_XPATH,
                  funcs=[click_element_by_ele])  # 点击未读
     time.sleep(random.uniform(1.0, 1.5))
     get_resume_key = {}
     list_first_ele = page.ele(
-        r'xpath://*[@id="container"]/div[1]/div/div[2]/div[2]/div[1]/div[2]/div/div[2]/div[1]')
+        MAIN_PAGE_COMMUNICATION_MESSAGE_LIST_FIRST_ITEM_XPATH)
     if not list_first_ele:
         with captcha_status['lock']:
             if captcha_status['captcha_status']:
@@ -164,12 +167,12 @@ def passive_resume(page):
     wait_for_ele(page=page, xpath=r'xpath://*[@id="container"]/div[1]/div/div[2]/div[1]/div/div/div/div[2]',
                  funcs=[if_not_selected_click])
     wait_for_ele(page=page,
-                 xpath=r'xpath://*[@id="container"]/div[1]/div/div[2]/div[2]/div[1]/div[1]/div[2]/div/span[2]',
+                 xpath=MAIN_PAGE_COMMUNICATION_MESSAGE_LIST_FILTER_NO_READ_XPATH,
                  funcs=[click_element_by_ele])  # 点击未读
     time.sleep(random.uniform(1.0, 1.5))
     get_resume_key = {}
     list_first_ele = page.ele(
-        r'xpath://*[@id="container"]/div[1]/div/div[2]/div[2]/div[1]/div[2]/div/div[2]/div[1]')
+        MAIN_PAGE_COMMUNICATION_MESSAGE_LIST_FIRST_ITEM_XPATH)
     if not list_first_ele:
         with captcha_status['lock']:
             if captcha_status['captcha_status']:
@@ -235,10 +238,10 @@ def get_resume_in_had_resume(page, init_resume):
     #                  funcs=[click_element_by_ele])  # 点击未读
     print('已获取简历-全部')
     wait_for_ele(page=page,
-                 xpath=r'xpath://*[@id="container"]/div[1]/div/div[2]/div[2]/div[1]/div[1]/div[2]/div/span[1]',
+                 xpath=MAIN_PAGE_COMMUNICATION_MESSAGE_LIST_FILTER_ALL_XPATH,
                  funcs=[click_element_by_ele])  # 点击全部
     list_first_ele = page.ele(
-        r'xpath://*[@id="container"]/div[1]/div/div[2]/div[2]/div[1]/div[2]/div/div[2]/div[1]')
+        MAIN_PAGE_COMMUNICATION_MESSAGE_LIST_FIRST_ITEM_XPATH)
     if not list_first_ele:
         with captcha_status['lock']:
             if captcha_status['captcha_status']:
@@ -247,11 +250,11 @@ def get_resume_in_had_resume(page, init_resume):
         print('当前消息列表为空')
         return
     index = 1
-    _check_map = {} # 存储已经点击过的key
-    list_item_ele = page.ele(r'xpath://*[@id="container"]/div[1]/div/div[2]/div[2]/div[1]/div[2]/div/div[2]/div[1]',
+    _check_map = {}  # 存储已经点击过的key
+    list_item_ele = page.ele(MAIN_PAGE_COMMUNICATION_MESSAGE_LIST_FIRST_ITEM_XPATH,
                              timeout=5)
     if not list_item_ele:
-        print('列表没有简历')
+        print('列表没有简历-1')
         return
     _list_first_key = list_item_ele.attr('key')  # 获取当前列表第一个key
     while True:
@@ -260,12 +263,15 @@ def get_resume_in_had_resume(page, init_resume):
                 # 正在处理验证需要退出 重新进入
                 break
         _list_first_item_ele = page.ele(
-            r'xpath://*[@id="container"]/div[1]/div/div[2]/div[2]/div[1]/div[2]/div/div[2]/div[1]',
+            MAIN_PAGE_COMMUNICATION_MESSAGE_LIST_FIRST_ITEM_XPATH,
             timeout=5)
+        if not _list_first_item_ele:
+            print('列表没有简历-2')
+            break
         _first_key = _list_first_item_ele.attr('key')
         if _first_key != _list_first_key:
             # 当前翻页了 下标需要相对偏移
-            _first_item_index = _check_map[_first_key]  # 获取当前列表第一个key的index
+            _first_item_index = _check_map.get(_first_key, 0)  # 获取当前列表第一个key的index
             index = index - _first_item_index + 1  # 正确下标
             _list_first_key = _first_key
         _list_item_ele = page.ele(
@@ -427,7 +433,7 @@ def say_hello(page, person_input: list[int], job_input: list[list[str]], filter_
                         if person_num <= 0:
                             print('{0}职位打招呼结束'.format(_job_txt))
                             break
-                        time.sleep(random.uniform(1.5, 2.0)) # 等待打招呼页面加载 fix-可能打完招呼后页面会刷新加入相似推荐卡片在列表中
+                        time.sleep(random.uniform(1.5, 2.0))  # 等待打招呼页面加载 fix-可能打完招呼后页面会刷新加入相似推荐卡片在列表中
                     except Exception:
                         print("打招呼失败")
                         continue
