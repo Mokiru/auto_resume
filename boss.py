@@ -406,6 +406,10 @@ def say_hello(page, person_input: list[int], job_input: list[list[str]], filter_
                                 continue
                     _card_ele = page.ele(
                         locator=MAIN_PAGE_AWESOME_PERSON_LIST_CARD_XPATH.format(index), timeout=5)  # 获取卡片元素
+                    _no_match_ele = _card_ele.ele(locator='@class=recommend-mome-ui', timeout=1) # 获取无匹配结果元素
+                    if _no_match_ele:
+                        print('当前职位已经没有推荐牛人')
+                        break
                     if not _card_ele:
                         # 当前职位已经没有推荐牛人
                         _job_select_ele = _header_wrap_ele.ele(locator=MAIN_PAGE_AWESOME_PERSON_SEARCH_LABEL_LOCATION,
