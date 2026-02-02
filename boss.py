@@ -6,7 +6,8 @@ import re
 import threading
 from datetime import datetime
 
-from base_operates import click_element, click_element_by_ele, open_browser, browser_mouse_move
+from base_operates import click_element, click_element_by_ele, open_browser, browser_mouse_move, read_or_create_ini, \
+    update_ini_value
 from operate_extensions import if_not_selected_click
 from page_decorator import say_call_dialog_solve, popup_when_ele_existed, captcha_status
 from simple_dialog import popup_input, get_global_root, popup_mixed_inputs, safe_gui_call
@@ -48,8 +49,11 @@ TIME_PATTERN = r'^([01]?[0-9]|2[0-3]):[0-5][0-9]$'
 USER_DATA_DIR = os.path.join(os.environ['APPDATA'], 'auto_resume', 'boss')
 CONFIG_INI_PATH = os.path.join(os.environ['APPDATA'], 'auto_resume', 'boss.ini')
 DEFAULT_CONFIG = {
-    'default' : {
-        'created' : 'True'
+    'default': {
+        'created': 'True'
+    },
+    'deadline': {
+        'time': '20:00:00'
     }
 }
 PORT = 9222
@@ -417,7 +421,7 @@ def say_hello(page, person_input: list[int], job_input: list[list[str]], filter_
                         if not _card_ele:
                             print('当前职位已经没有推荐牛人')
                             break
-                    _no_match_ele = _card_ele.ele(locator='@class=recommend-mome-ui', timeout=1) # 获取无匹配结果元素
+                    _no_match_ele = _card_ele.ele(locator='@class=recommend-mome-ui', timeout=1)  # 获取无匹配结果元素
                     if _no_match_ele:
                         print('当前职位已经没有推荐牛人')
                         break
@@ -450,7 +454,8 @@ def say_hello(page, person_input: list[int], job_input: list[list[str]], filter_
                         print("当前职位没有推荐牛人")
                         continue
                     try:
-                        print('{0}职位将打招呼{1}人'.format(_job_txt, person_input[i] - person_num)) # fix-可能点击与限制弹窗出现次序问题，如 点击-弹窗关闭-成功打招呼日志输出(该成功只能说明点击成功而不能说明真正打招呼成功即超出限制) 顺序问题
+                        print('{0}职位将打招呼{1}人'.format(_job_txt, person_input[
+                            i] - person_num + 1))  # fix-可能点击与限制弹窗出现次序问题，如 点击-弹窗关闭-成功打招呼日志输出(该成功只能说明点击成功而不能说明真正打招呼成功即超出限制) 顺序问题
                         click_element_by_ele(page, _say_hello_ele)  # 点击打招呼
                         person_num -= 1
                         print('{0}职位已打招呼{1}人'.format(_job_txt, person_input[i] - person_num))
@@ -559,7 +564,7 @@ def get_filter_list(page):
 
 
 @popup_when_ele_existed(locator=CAPTCHA_PAGE_LOCATOR)
-def do_chain(page):
+def do_chain(page, config):
     page.get(URL_AWESOME)  # 推荐牛人界面
     _position_list = get_position_list(page)
     _filter_list = get_filter_list(page)
@@ -614,7 +619,13 @@ def run(_deadline_time: str):
 
 
 def prepare_run():
-    _deadline_time = safe_gui_call(popup_input, '自动终止时间(24小时制),不填默认20:00:00')
+    _config = read_or_create_ini(file_path=CONFIG_INI_PATH, default_config=DEFAULT_CONFIG)
+    _config_deadline = _config['deadline']['time']
+    _deadline_time = safe_gui_call(popup_input, f'自动终止时间(24小时制),不填默认{_config_deadline}')
+    if _deadline_time != '':
+        update_ini_value(CONFIG_INI_PATH, 'deadline', 'time', _deadline_time)
+    else:
+        _deadline_time = _config_deadline
     run(_deadline_time)
 
 

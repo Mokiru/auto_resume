@@ -421,11 +421,11 @@ def say_hello(page, job_list):
             SEARCH_PERSON_FILTER_CLICK_ATTACH_FILTER_WRAP_XPATH)
         _search_txt_ele = _all_wrap_ele.ele(
             SEARCH_PERSON_FILTER_SEARCH_BOX_ATTACH_XPATH)
-        _current_job_parts = _communication_job[_idx].split(',', 1) # 分割为两部分
+        _current_job_parts = _communication_job[_idx].split(',', 1)  # 分割为两部分
         if len(_current_job_parts) != 2:
             print('未选择沟通职位')
             _fix_current_job = safe_gui_call(popup_mixed_inputs, [
-                {'type': 'searchable_select', 'title':'沟通职位', 'choices': job_list}
+                {'type': 'searchable_select', 'title': '沟通职位', 'choices': job_list}
             ])
             _current_job_parts = _fix_current_job[0].split(',', 1)
             if len(_current_job_parts) != 2:
@@ -827,6 +827,10 @@ def say_hello(page, job_list):
                 if _now_communication_ele:
                     _truth_person_item_ele = page.ele(
                         SEARCH_PERSON_COMMUNICATION_LIST_ITEM_XPATH_PATTERN.format(_list_idx + 1), timeout=3)
+                    _truth_now_communication_ele = _truth_person_item_ele.ele('立即沟通')
+                    if not _truth_now_communication_ele:
+                        print('未找到立即沟通按钮')
+                        continue
                     click_element_by_ele(page, _truth_person_item_ele.ele('立即沟通'))
                     # 解决可能出现的 立即沟通和继续沟通未同步导致的状态错误 弹出对话框
                     _check_continue_dialog_ele = page.ele(
@@ -837,6 +841,7 @@ def say_hello(page, job_list):
                             SEARCH_PERSON_COMMUNICATION_CONTINUE_COMMUNICATION_CLOSE_ATTACH_XPATH, timeout=3)
                         click_element_by_ele(page, _close_btn_ele)
                         continue
+                    # 选择沟通职位
                     _communication_dialog_ele = page.ele(SEARCH_PERSON_COMMUNICATION_DIALOG_LOCATION, timeout=3)
                     if _communication_dialog_ele:
                         _search_input_ele = _communication_dialog_ele.ele(

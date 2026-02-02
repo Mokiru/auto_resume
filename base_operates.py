@@ -165,7 +165,7 @@ def click_element_by_ele(page, ele):
     time.sleep(random.uniform(0.3, 0.7))
 
 
-def read_or_create_ini(file_path: str, default_config: dict = None):
+def read_or_create_ini(file_path: str, default_config: dict = None) -> configparser.ConfigParser:
     """
     读取或创建INI配置文件
 
