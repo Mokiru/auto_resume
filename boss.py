@@ -564,7 +564,7 @@ def get_filter_list(page):
 
 
 @popup_when_ele_existed(locator=CAPTCHA_PAGE_LOCATOR)
-def do_chain(page, config):
+def do_chain(page):
     page.get(URL_AWESOME)  # 推荐牛人界面
     _position_list = get_position_list(page)
     _filter_list = get_filter_list(page)
