@@ -151,7 +151,7 @@ COMMUNICATION_URL = URL_LOGIN + "/chat/im"
 COMMUNICATION_NEW_HELLO_XPATH = r'xpath://*[@id="main-container"]/section/section/main/div/div[1]/div/div[1]/div[2]/div/div/div/label[2]'
 COMMUNICATION_NO_READ_XPATH = r'xpath://*[@id="main-container"]/section/section/main/div/div[1]/div/div[2]/aside/div[1]/div[3]/div/label/span[1]'
 COMMUNICATION_PERSON_LIST_XPATH_PREFIX = r'xpath://*[@id="main-container"]/section/section/main/div/div[1]/div/div[2]/aside/div[2]/div[1]/div/div[{0}]'
-COMMUNICATION_GET_RESUME_BUTTON_XPATH = r'xpath://*[@id="main-container"]/section/section/main/div/div[1]/div/div[2]/div/div[2]/div[3]/div[1]/div[1]/div/div[1]/div/div[3]/span/span'
+COMMUNICATION_GET_RESUME_BUTTON_XPATH = r'xpath://*[@id="main-container"]/section/section/main/div/div[1]/div/div[2]/div/div[2]/div[3]/div[1]/div[1]/div/div[1]/div/div[3]/span'
 COMMUNICATION_CONFIRM_RESUME_BUTTON_FILTER = '@@class=ant-im-btn ant-im-btn-primary@@type=button'
 COMMUNICATION_MESSAGE_BOX_XPATH = r'xpath://*[@id="main-container"]/section/section/main/div/div[1]/div/div[2]/div/div[2]/div[2]/div[1]'
 
@@ -181,8 +181,8 @@ def proactive_resume(page) -> None:
     if no_read_ele.attr('class') != 'ant-im-checkbox ant-im-checkbox-checked':
         click_element_by_ele(page, no_read_ele)  # 需要点击未读
     person_index = 1
+    truth_person_index = 0
     while True:
-        print('当前第{}个人'.format(person_index))
         person_ele = page.ele(COMMUNICATION_PERSON_LIST_XPATH_PREFIX.format(person_index),
                               timeout=5)  # 获取当前第person_index个人
         person_index += 1
@@ -191,6 +191,8 @@ def proactive_resume(page) -> None:
             break
         if person_ele.attr('class') != 'im-ui-contact-info':  # 跳过非目标
             continue
+        truth_person_index += 1
+        print('当前第{}个人'.format(truth_person_index))
         click_element_by_ele(page, person_ele)  # 打开对话框
         # 判断是否触发注销或停用
         _cancel_btn_ele = page.ele(locator=COMMUNICATION_CONFIRM_RESUME_BUTTON_FILTER, timeout=5)
@@ -230,8 +232,8 @@ def passive_resume(page) -> None:
     if no_read_ele.attr('class') != 'ant-im-checkbox ant-im-checkbox-checked':
         click_element_by_ele(page, no_read_ele)  # 需要点击未读
     person_index = 1
+    truth_person_index = 0
     while True:
-        print('当前第{}个人'.format(person_index))
         person_ele = page.ele(COMMUNICATION_PERSON_LIST_XPATH_PREFIX.format(person_index),
                               timeout=5)  # 获取当前第person_index个人
         person_index += 1
@@ -240,6 +242,8 @@ def passive_resume(page) -> None:
             break
         if person_ele.attr('class') != 'im-ui-contact-info':  # 跳过非目标
             continue
+        truth_person_index += 1
+        print('当前第{}个人'.format(truth_person_index))
         click_element_by_ele(page, person_ele)  # 打开对话框
         # 判断是否触发注销或停用
         _cancel_btn_ele = page.ele(locator=COMMUNICATION_CONFIRM_RESUME_BUTTON_FILTER, timeout=5)
