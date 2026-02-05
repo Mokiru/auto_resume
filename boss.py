@@ -54,6 +54,9 @@ DEFAULT_CONFIG = {
     },
     'deadline': {
         'time': '20:00:00'
+    },
+    'common_phrases': {
+        'greetings': '方便发一份你的简历过来吗？'
     }
 }
 PORT = 9222
@@ -71,10 +74,11 @@ def check_unread(ele) -> bool:
     return True
 
 
-def proactive_resume(page):
+def proactive_resume(page, config):
     """
     处理主动打招呼后的简历
     :param page:
+    :param config:
     :return:
     """
     if page.url != URL_COMMUNICATION:
@@ -136,10 +140,10 @@ def proactive_resume(page):
                 _confirm_btn = _confirm_message.ele(locator='@@class=card-btn@@text()=同意')
                 click_element_by_ele(page, _confirm_btn)
                 continue
-            if chat_message_ele.ele(locator='@text()=方便发一份你的简历过来吗？', timeout=2):
+            if chat_message_ele.ele(locator='@text():方便发一份你的简历过来吗', timeout=2):
                 print('当前已经请求简历，但对方未发送')
                 continue
-            page.actions.type('方便发一份你的简历过来吗？\n')
+            page.actions.type(config['common_phrases']['greetings']).type('\n')
             time.sleep(random.uniform(1.0, 1.5))
             click_element(page,
                           r'xpath://*[@id="container"]/div[1]/div/div[2]/div[2]/div[2]/div[1]/div[3]/div[1]/div[2]/div[1]/div[1]/span[1]')  # 求简历
@@ -166,10 +170,11 @@ def wait_for_ele(page, xpath, funcs: list = None):
             func(page, _ele)
 
 
-def passive_resume(page):
+def passive_resume(page, config):
     """
     新招呼
     :param page:
+    :param config:
     :return:
     """
     if page.url != URL_COMMUNICATION:
@@ -214,10 +219,10 @@ def passive_resume(page):
                 timeout=5)  # 获取消息框元素
             if chat_message_ele.ele(locator='@class=message-dialog-icon resume-icon',
                                     timeout=2) or chat_message_ele.ele(
-                locator='@text()=方便发一份你的简历过来吗？', timeout=2):
+                locator='@text():方便发一份你的简历过来吗', timeout=2):
                 print("当前已获取简历，跳过")
                 continue
-            page.actions.type('方便发一份你的简历过来吗？\n')
+            page.actions.type(config['common_phrases']['greetings']).type('\n')
             time.sleep(random.uniform(1.0, 1.5))
             click_element(page,
                           r'xpath://*[@id="container"]/div[1]/div/div[2]/div[2]/div[2]/div[1]/div[3]/div[1]/div[2]/div[1]/div[1]/span[1]')  # 求简历
@@ -591,9 +596,10 @@ def do_chain(page):
     say_hello(page, _person_input, _job_input, _filter_input, _desired_input, _age_input)  # 第一步 打招呼
     page.get(URL_COMMUNICATION)
     init_resume = 0
+    _config = read_or_create_ini(file_path=CONFIG_INI_PATH, default_config=DEFAULT_CONFIG)
     while True:
-        proactive_resume(page)  # 第二步 收取主动打招呼的简历
-        passive_resume(page)  # 第三步 处理新招呼 求简历
+        proactive_resume(page, _config)  # 第二步 收取主动打招呼的简历
+        passive_resume(page, _config)  # 第三步 处理新招呼 求简历
         get_resume_in_had_resume(page, init_resume)
         init_resume |= 1
 
