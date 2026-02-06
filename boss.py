@@ -74,11 +74,11 @@ def check_unread(ele) -> bool:
     return True
 
 
-def proactive_resume(page, config):
+def proactive_resume(page, common_greeting):
     """
     处理主动打招呼后的简历
     :param page:
-    :param config:
+    :param common_greeting:
     :return:
     """
     if page.url != URL_COMMUNICATION:
@@ -143,7 +143,7 @@ def proactive_resume(page, config):
             if chat_message_ele.ele(locator='@text():方便发一份你的简历过来吗', timeout=2):
                 print('当前已经请求简历，但对方未发送')
                 continue
-            page.actions.type(config['common_phrases']['greetings']).type('\n')
+            page.actions.type(common_greeting).type('\n')
             time.sleep(random.uniform(1.0, 1.5))
             click_element(page,
                           r'xpath://*[@id="container"]/div[1]/div/div[2]/div[2]/div[2]/div[1]/div[3]/div[1]/div[2]/div[1]/div[1]/span[1]')  # 求简历
@@ -170,11 +170,11 @@ def wait_for_ele(page, xpath, funcs: list = None):
             func(page, _ele)
 
 
-def passive_resume(page, config):
+def passive_resume(page, common_greeting):
     """
     新招呼
     :param page:
-    :param config:
+    :param common_greeting:
     :return:
     """
     if page.url != URL_COMMUNICATION:
@@ -222,7 +222,7 @@ def passive_resume(page, config):
                 locator='@text():方便发一份你的简历过来吗', timeout=2):
                 print("当前已获取简历，跳过")
                 continue
-            page.actions.type(config['common_phrases']['greetings']).type('\n')
+            page.actions.type(common_greeting).type('\n')
             time.sleep(random.uniform(1.0, 1.5))
             click_element(page,
                           r'xpath://*[@id="container"]/div[1]/div/div[2]/div[2]/div[2]/div[1]/div[3]/div[1]/div[2]/div[1]/div[1]/span[1]')  # 求简历
@@ -597,9 +597,15 @@ def do_chain(page):
     page.get(URL_COMMUNICATION)
     init_resume = 0
     _config = read_or_create_ini(file_path=CONFIG_INI_PATH, default_config=DEFAULT_CONFIG)
+    _common_greeting = None
+    if 'common_phrases' in _config and 'greetings' in _config['common_phrases']:
+        _common_greeting = _config['common_phrases']['greetings']
+    if _common_greeting is None or _common_greeting == '':
+        _common_greeting = '方便发一份你的简历过来吗？'
+        update_ini_value(CONFIG_INI_PATH, 'common_phrases', 'greetings', _common_greeting)
     while True:
-        proactive_resume(page, _config)  # 第二步 收取主动打招呼的简历
-        passive_resume(page, _config)  # 第三步 处理新招呼 求简历
+        proactive_resume(page, _common_greeting)  # 第二步 收取主动打招呼的简历
+        passive_resume(page, _common_greeting)  # 第三步 处理新招呼 求简历
         get_resume_in_had_resume(page, init_resume)
         init_resume |= 1
 
@@ -627,6 +633,9 @@ def run(_deadline_time: str):
 def prepare_run():
     _config = read_or_create_ini(file_path=CONFIG_INI_PATH, default_config=DEFAULT_CONFIG)
     _config_deadline = _config['deadline']['time']
+    if _config_deadline is None or _config_deadline == '':
+        _config_deadline = '20:00:00'
+        update_ini_value(CONFIG_INI_PATH, 'deadline', 'time', _config_deadline)
     _deadline_time = safe_gui_call(popup_input, f'自动终止时间(24小时制),不填默认{_config_deadline}')
     if _deadline_time != '':
         update_ini_value(CONFIG_INI_PATH, 'deadline', 'time', _deadline_time)
