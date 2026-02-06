@@ -633,7 +633,7 @@ def run(_deadline_time: str):
 def prepare_run():
     _config = read_or_create_ini(file_path=CONFIG_INI_PATH, default_config=DEFAULT_CONFIG)
     _config_deadline = _config['deadline']['time']
-    if _config_deadline is None or _config_deadline == '':
+    if _config_deadline is None or _config_deadline == '' or len(_config_deadline.split(':')) != 3:
         _config_deadline = '20:00:00'
         update_ini_value(CONFIG_INI_PATH, 'deadline', 'time', _config_deadline)
     _deadline_time = safe_gui_call(popup_input, f'自动终止时间(24小时制),不填默认{_config_deadline}')
