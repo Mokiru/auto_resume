@@ -831,6 +831,9 @@ def say_hello(page, job_list):
                 if _now_communication_ele:
                     _truth_person_item_ele = page.ele(
                         SEARCH_PERSON_COMMUNICATION_LIST_ITEM_XPATH_PATTERN.format(_list_idx + 1), timeout=3)
+                    if not _truth_person_item_ele:
+                        print('未找到列表项')
+                        continue
                     _truth_now_communication_ele = _truth_person_item_ele.ele('立即沟通')
                     if not _truth_now_communication_ele:
                         print('未找到立即沟通按钮')
