@@ -239,6 +239,7 @@ jobs:
           path: |
             ${{ steps.create_windows_package.outputs.boss_name }}
             ${{ steps.create_windows_package.outputs.liepin_name }}
+          retention-days: 3
   build-macos:
     needs: [ analyze-commits, create-tag ]
     runs-on: macos-latest
@@ -343,6 +344,7 @@ jobs:
           path: |            
             ${{ steps.create_macos_package.outputs.boss_name }}
             ${{ steps.create_macos_package.outputs.liepin_name }}
+          retention-days: 3
   create-release:
     needs: [ analyze-commits, build-macos, build-windows ]
     runs-on: ubuntu-latest
