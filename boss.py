@@ -385,7 +385,7 @@ def say_hello(page, person_input: list[int], job_input: list[list[str]], filter_
                         _target_filter_ele = _filter_wrap_ele.ele(locator='@@class=option@@text():{0}'.format(_filter))
                         if not _target_filter_ele:
                             _target_filter_ele = _filter_wrap_ele.ele(
-                                locator='@@class=name@@text():{0}'.format(_filter))
+                                locator='@@class=name@@text()={0}'.format(_filter))
                             if not _target_filter_ele:
                                 print(f'未找到筛选条件：{_filter}')
                         click_element_by_ele(page, _target_filter_ele)  # 点击筛选条件
