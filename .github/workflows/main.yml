@@ -240,113 +240,113 @@ jobs:
             ${{ steps.create_windows_package.outputs.boss_name }}
             ${{ steps.create_windows_package.outputs.liepin_name }}
           retention-days: 1
-  build-macos:
-    needs: [ analyze-commits, create-tag ]
-    runs-on: macos-latest
-    steps:
-      - name: Debug information
-        run: |          
-          echo "=== macOS 构建调试信息 ==="
-          echo "是否需要发布: ${{ needs.analyze-commits.outputs.should-release }}"
-          echo "版本类型: ${{ needs.analyze-commits.outputs.version-type }}"
-          echo "新标签: ${{ needs.analyze-commits.outputs.new-tag }}"
-          echo "================="
-
-      - name: Determine target tag
-        id: target-tag
-        run: |          
-          if [ "${{ needs.analyze-commits.outputs.should-release }}" = "true" ]; then
-          TAG="${{ needs.analyze-commits.outputs.new-tag }}"
-          else
-          TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
-          fi
-          
-          # 清理版本号（移除开头的v）
-          VERSION=${TAG#v}
-          
-          echo "TAG_NAME=$TAG" >> $GITHUB_OUTPUT
-          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
-          echo "最终版本: $VERSION"
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
-      - name: Install dependencies
-        run: |          
-          pip install --upgrade pip
-          if [ -f "requirements.txt" ]; then
-            pip install -r requirements.txt
-          fi
-          pip install pyinstaller
-      - name: Build boss executable for macOS
-        run: |          
-          if [ -f "boss.py" ]; then
-          pyinstaller --onefile boss.py
-          else
-          echo "❌ boss.py 文件不存在"
-          ls -la
-          exit 1
-          fi
-      - name: Build liepin executable for macOS
-        run: |          
-          if [ -f "liepin.py" ]; then
-          pyinstaller --onefile liepin.py
-          echo "✅ liepin.py 打包完成"
-          else
-          echo "❌ liepin.py 文件不存在"
-          ls -la
-          exit 1
-          fi
-      - name: Create ZIP package for macOS
-        id: create_macos_package
-        run: |          
-          VERSION="${{ steps.target-tag.outputs.VERSION }}"
-          echo "创建macOS压缩包:"
-          BOSS_PACKAGE="AutoBoss-macOS-v$VERSION.zip"
-          if [ -f "dist/boss" ]; then
-            echo "找到macOS可执行文件: dist/boss"
-            cd dist
-            zip -r "../$BOSS_PACKAGE" boss -j
-            cd ..
-            echo "✅ macOS Boss Package created: $BOSS_PACKAGE"
-          else
-            echo "❌ 可执行文件不存在"
-            ls -la dist/
-            find . -name "boss*" -type f
-            exit 1
-          fi
-          
-          # 创建liepin压缩包
-          LIEPIN_PACKAGE="AutoLiepin-macOS-v$VERSION.zip"
-          if [ -f "dist/liepin" ]; then
-            cd dist
-            zip -r "../$LIEPIN_PACKAGE" liepin -j
-            cd ..
-            echo "✅ macOS Liepin包创建成功: $LIEPIN_PACKAGE"
-          else
-            echo "❌ liepin 不存在"
-            exit 1
-          fi
-          
-          echo "boss_name=$BOSS_PACKAGE" >> $GITHUB_OUTPUT
-          echo "liepin_name=$LIEPIN_PACKAGE" >> $GITHUB_OUTPUT
-          # 列出所有文件确认
-          ls -la *.zip
-      - name: Upload macOS artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: macos-packages
-          path: |            
-            ${{ steps.create_macos_package.outputs.boss_name }}
-            ${{ steps.create_macos_package.outputs.liepin_name }}
-          retention-days: 1
+#  build-macos:
+#    needs: [ analyze-commits, create-tag ]
+#    runs-on: macos-latest
+#    steps:
+#      - name: Debug information
+#        run: |
+#          echo "=== macOS 构建调试信息 ==="
+#          echo "是否需要发布: ${{ needs.analyze-commits.outputs.should-release }}"
+#          echo "版本类型: ${{ needs.analyze-commits.outputs.version-type }}"
+#          echo "新标签: ${{ needs.analyze-commits.outputs.new-tag }}"
+#          echo "================="
+#
+#      - name: Determine target tag
+#        id: target-tag
+#        run: |
+#          if [ "${{ needs.analyze-commits.outputs.should-release }}" = "true" ]; then
+#          TAG="${{ needs.analyze-commits.outputs.new-tag }}"
+#          else
+#          TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+#          fi
+#
+#          # 清理版本号（移除开头的v）
+#          VERSION=${TAG#v}
+#
+#          echo "TAG_NAME=$TAG" >> $GITHUB_OUTPUT
+#          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+#          echo "最终版本: $VERSION"
+#      - name: Checkout repository
+#        uses: actions/checkout@v4
+#        with:
+#          fetch-depth: 0
+#          token: ${{ secrets.GITHUB_TOKEN }}
+#      - name: Set up Python
+#        uses: actions/setup-python@v4
+#        with:
+#          python-version: '3.10'
+#      - name: Install dependencies
+#        run: |
+#          pip install --upgrade pip
+#          if [ -f "requirements.txt" ]; then
+#            pip install -r requirements.txt
+#          fi
+#          pip install pyinstaller
+#      - name: Build boss executable for macOS
+#        run: |
+#          if [ -f "boss.py" ]; then
+#          pyinstaller --onefile boss.py
+#          else
+#          echo "❌ boss.py 文件不存在"
+#          ls -la
+#          exit 1
+#          fi
+#      - name: Build liepin executable for macOS
+#        run: |
+#          if [ -f "liepin.py" ]; then
+#          pyinstaller --onefile liepin.py
+#          echo "✅ liepin.py 打包完成"
+#          else
+#          echo "❌ liepin.py 文件不存在"
+#          ls -la
+#          exit 1
+#          fi
+#      - name: Create ZIP package for macOS
+#        id: create_macos_package
+#        run: |
+#          VERSION="${{ steps.target-tag.outputs.VERSION }}"
+#          echo "创建macOS压缩包:"
+#          BOSS_PACKAGE="AutoBoss-macOS-v$VERSION.zip"
+#          if [ -f "dist/boss" ]; then
+#            echo "找到macOS可执行文件: dist/boss"
+#            cd dist
+#            zip -r "../$BOSS_PACKAGE" boss -j
+#            cd ..
+#            echo "✅ macOS Boss Package created: $BOSS_PACKAGE"
+#          else
+#            echo "❌ 可执行文件不存在"
+#            ls -la dist/
+#            find . -name "boss*" -type f
+#            exit 1
+#          fi
+#
+#          # 创建liepin压缩包
+#          LIEPIN_PACKAGE="AutoLiepin-macOS-v$VERSION.zip"
+#          if [ -f "dist/liepin" ]; then
+#            cd dist
+#            zip -r "../$LIEPIN_PACKAGE" liepin -j
+#            cd ..
+#            echo "✅ macOS Liepin包创建成功: $LIEPIN_PACKAGE"
+#          else
+#            echo "❌ liepin 不存在"
+#            exit 1
+#          fi
+#
+#          echo "boss_name=$BOSS_PACKAGE" >> $GITHUB_OUTPUT
+#          echo "liepin_name=$LIEPIN_PACKAGE" >> $GITHUB_OUTPUT
+#          # 列出所有文件确认
+#          ls -la *.zip
+#      - name: Upload macOS artifacts
+#        uses: actions/upload-artifact@v4
+#        with:
+#          name: macos-packages
+#          path: |
+#            ${{ steps.create_macos_package.outputs.boss_name }}
+#            ${{ steps.create_macos_package.outputs.liepin_name }}
+#          retention-days: 1
   create-release:
-    needs: [ analyze-commits, build-macos, build-windows ]
+    needs: [ analyze-commits, build-windows ] # build-macos
     runs-on: ubuntu-latest
     steps:
       - name: Download all packages
@@ -377,10 +377,10 @@ jobs:
             
             ### 下载选项
             - Windows 版本: AutoBoss-Windows-v${{ needs.analyze-commits.outputs.new-tag }}.zip, AutoLiepin-Windows-v${{ needs.analyze-commits.outputs.new-tag }}.zip
-            - macOS 版本: AutoBoss-macOS-v${{ needs.analyze-commits.outputs.new-tag }}.zip, AutoLiepin-macOS-v${{ needs.analyze-commits.outputs.new-tag }}.zip
+#            - macOS 版本: AutoBoss-macOS-v${{ needs.analyze-commits.outputs.new-tag }}.zip, AutoLiepin-macOS-v${{ needs.analyze-commits.outputs.new-tag }}.zip
           files: |            
             packages/windows-packages/*
-            packages/macos-packages/*
+#            packages/macos-packages/*
           draft: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
