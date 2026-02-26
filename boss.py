@@ -39,6 +39,7 @@ MAIN_PAGE_COMMUNICATION_XPATH = r'xpath://*[@id="wrap"]/div[1]/div/dl[4]'
 MAIN_PAGE_COMMUNICATION_MESSAGE_LIST_FIRST_ITEM_XPATH = r'xpath://*[@id="container"]/div[1]/div/div[2]/div[2]/div[1]/div[2]/div/div[2]/div[1]'
 MAIN_PAGE_COMMUNICATION_MESSAGE_LIST_FILTER_NO_READ_XPATH = r'xpath://*[@id="container"]/div[1]/div/div[2]/div[2]/div[1]/div[1]/div[2]/div/span[2]'
 MAIN_PAGE_COMMUNICATION_MESSAGE_LIST_FILTER_ALL_XPATH = r'xpath://*[@id="container"]/div[1]/div/div[2]/div[2]/div[1]/div[1]/div[2]/div/span[1]'
+EXTENSION_BS_XPATH = r'xpath://*[@id="talentEyeIcon"]'  # 北森插件xpath
 
 URL_LOGIN = 'https://www.zhipin.com/web/user/?ka=bticket'
 URL_AWESOME = 'https://www.zhipin.com/web/chat/recommend'
@@ -325,6 +326,15 @@ def check_today(page):
     return False
 
 
+def check_bs_extension_exist(page) -> bool:
+    """
+    判断指定页面是否存在北森插件
+    :param page:
+    :return:
+    """
+    return page.ele(EXTENSION_BS_XPATH, timeout=5)
+
+
 @say_call_dialog_solve
 def say_hello(page, person_input: list[int], job_input: list[list[str]], filter_input: list[list[str]],
               desired_input: list[list[str]], age_input: list[list[str]],
@@ -341,6 +351,7 @@ def say_hello(page, person_input: list[int], job_input: list[list[str]], filter_
     :return:
     """
     wait_for_ele(page=page, xpath=MAIN_PAGE_AWESOME_PERSON_XPATH, funcs=[click_element_by_ele])  # 点击推荐牛人
+    _bs_extension_exist = check_bs_extension_exist(page)
     for i in range(len(job_input)):
         _current_job_index = 0
         while _current_job_index < len(job_input[i]):  # 遍历当前筛选项对应的职位列表
@@ -458,6 +469,15 @@ def say_hello(page, person_input: list[int], job_input: list[list[str]], filter_
                     if not _say_hello_ele:
                         print("当前职位没有推荐牛人")
                         continue
+                    # 北森插件简历查重
+                    if _bs_extension_exist:
+                        # 存在北森插件，则点击人选
+                        click_element_by_ele(page, _age_ele) # 通过点击年龄信息打开简历
+                        click_element(page, EXTENSION_BS_XPATH) # 点击插件
+                        _res_ele = page.ele(locator='@|text()=系统发现疑似简历@|text()=未发现重复或疑似简历', timeout=10)
+                        if _res_ele and _res_ele.text == '系统发现疑似简历':
+                            print('当前职位有疑似简历')
+                            continue
                     try:
                         print('{0}职位将打招呼{1}人'.format(_job_txt, person_input[
                             i] - person_num + 1))  # fix-可能点击与限制弹窗出现次序问题，如 点击-弹窗关闭-成功打招呼日志输出(该成功只能说明点击成功而不能说明真正打招呼成功即超出限制) 顺序问题
